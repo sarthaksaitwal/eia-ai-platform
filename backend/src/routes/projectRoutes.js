@@ -7,8 +7,8 @@ const {
   getProject,
   updateProject,
   deleteProject,
-  getNearbyFeatures,
 } = require("../controllers/projectController");
+const assessmentRoutes = require("./assessmentRoutes");
 
 const router = Router();
 
@@ -29,6 +29,8 @@ router.get("/", listProjects);
 router.get("/:id", getProject);
 router.put("/:id", updateProject);
 router.delete("/:id", deleteProject);
-router.get("/:id/nearby/:feature", getNearbyFeatures);
+
+// Nested: /api/projects/:projectId/assessments
+router.use("/:projectId/assessments", assessmentRoutes);
 
 module.exports = router;

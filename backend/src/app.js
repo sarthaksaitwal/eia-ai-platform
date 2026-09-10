@@ -5,6 +5,8 @@ const morgan = require("morgan");
 
 const authRoutes = require("./routes/authRoutes");
 const projectRoutes = require("./routes/projectRoutes");
+const assessmentDetailRoutes = require("./routes/assessmentDetailRoutes");
+const referenceRoutes = require("./routes/referenceRoutes");
 const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
@@ -19,7 +21,9 @@ if (process.env.NODE_ENV !== "test") {
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 app.use("/api/auth", authRoutes);
-app.use("/api/projects", projectRoutes);
+app.use("/api/projects", projectRoutes);       // includes nested /:projectId/assessments (create, list)
+app.use("/api/assessments", assessmentDetailRoutes); // /:id detail, /:id/inputs
+app.use("/api/reference", referenceRoutes);    // engineering coefficients + calculation rules
 
 app.use(notFoundHandler);
 app.use(errorHandler);

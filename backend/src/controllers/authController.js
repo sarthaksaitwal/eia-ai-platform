@@ -11,15 +11,21 @@ const register = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) throw new ApiError(400, errors.array()[0].msg);
 
-  const { name, email, password } = req.body;
+  const { name, email, password, role, organization } = req.body;
 
   const existing = await findUserByEmail(email);
   if (existing) throw new ApiError(409, "An account with this email already exists.");
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-  const user = await createUser({ name, email, passwordHash });
+  const user = await createUser({
+    name,
+    email,
+    passwordHash,
+    role: role || "PROJECT_DEVELOPER",
+    organization,
+  });
 
-  const token = signToken({ sub: user.id, email: user.email });
+  const token = signToken({ sub: user.id, email: user.email, role: user.role });
   res.status(201).json({ user, token });
 });
 
@@ -30,13 +36,21 @@ const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const user = await findUserByEmail(email);
   if (!user) throw new ApiError(401, "Invalid email or password.");
+  if (!user.is_active) throw new ApiError(403, "This account has been deactivated.");
 
   const passwordMatches = await bcrypt.compare(password, user.password_hash);
   if (!passwordMatches) throw new ApiError(401, "Invalid email or password.");
 
-  const token = signToken({ sub: user.id, email: user.email });
+  const token = signToken({ sub: user.id, email: user.email, role: user.role });
   res.json({
-    user: { id: user.id, name: user.name, email: user.email, created_at: user.created_at },
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organization: user.organization,
+      created_at: user.created_at,
+    },
     token,
   });
 });
