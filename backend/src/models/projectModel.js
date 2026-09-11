@@ -41,11 +41,12 @@ async function createProjectWithLocation({ userId, project, location }) {
       const locResult = await client.query(
         `INSERT INTO project_locations (
            project_id, address, city, district, state, country,
-           latitude, longitude, elevation_m
+           latitude, longitude, elevation_m, area_classification, ecologically_sensitive
          )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING id, project_id, address, city, district, state, country,
-                   latitude, longitude, elevation_m, created_at`,
+                   latitude, longitude, elevation_m, area_classification,
+                   ecologically_sensitive, created_at`,
         [
           newProject.id,
           location.address ?? null,
@@ -56,6 +57,8 @@ async function createProjectWithLocation({ userId, project, location }) {
           location.latitude ?? null,
           location.longitude ?? null,
           location.elevationM ?? null,
+          location.areaClassification ?? null,
+          location.ecologicallySensitive ?? null,
         ]
       );
       newLocation = locResult.rows[0];

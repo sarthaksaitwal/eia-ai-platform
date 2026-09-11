@@ -22,7 +22,7 @@ app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);       // includes nested /:projectId/assessments (create, list)
-app.use("/api/assessments", assessmentDetailRoutes); // /:id detail, /:id/inputs
+app.use("/api/assessments", assessmentDetailRoutes); // /:id detail, /:id/inputs, /:id/environmental-data
 app.use("/api/reference", referenceRoutes);    // engineering coefficients + calculation rules
 
 app.use(notFoundHandler);

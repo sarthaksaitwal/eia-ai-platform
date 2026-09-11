@@ -36,4 +36,41 @@ async function listRules({ factor } = {}) {
   return rows;
 }
 
-module.exports = { listCoefficients, listRules };
+// Comparison limits (NAAQS, ambient noise, ...). Rows with verified = FALSE have
+// not been checked against the notification text, so a caller must not present
+// them as a compliance statement.
+async function listStandards({ category, parameterName, zone, standardName, verifiedOnly } = {}) {
+  const conditions = ["active = TRUE"];
+  const values = [];
+
+  if (category) {
+    values.push(category);
+    conditions.push(`category = $${values.length}`);
+  }
+  if (parameterName) {
+    values.push(parameterName);
+    conditions.push(`parameter_name = $${values.length}`);
+  }
+  if (zone) {
+    // Limits stored as 'All' apply to every zone.
+    values.push(zone);
+    conditions.push(`(zone = $${values.length} OR zone = 'All')`);
+  }
+  if (standardName) {
+    values.push(standardName);
+    conditions.push(`standard_name = $${values.length}`);
+  }
+  if (verifiedOnly) {
+    conditions.push("verified = TRUE");
+  }
+
+  const { rows } = await query(
+    `SELECT * FROM regulatory_standards
+     WHERE ${conditions.join(" AND ")}
+     ORDER BY category, parameter_name, zone, averaging_period`,
+    values
+  );
+  return rows;
+}
+
+module.exports = { listCoefficients, listRules, listStandards };

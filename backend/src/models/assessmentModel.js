@@ -1,6 +1,11 @@
 const { pool, query } = require("../config/db");
 
-const VALID_CATEGORIES = ["Air", "Water", "Ecology", "Carbon", "Resource", "Waste", "Noise"];
+// Must match chk_assessment_inputs_category (migration 002): the seven impact
+// factors plus the supporting baseline categories.
+const VALID_CATEGORIES = [
+  "Air", "Water", "Ecology", "Carbon", "Resource", "Waste", "Noise",
+  "Meteorology", "Land", "Soil", "Socio-economic", "Natural Hazards",
+];
 
 async function createAssessment(projectId, { methodologyVersion } = {}) {
   const client = await pool.connect();

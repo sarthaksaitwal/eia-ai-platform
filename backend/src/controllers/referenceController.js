@@ -13,4 +13,18 @@ const getRules = asyncHandler(async (req, res) => {
   res.json({ rules });
 });
 
-module.exports = { getCoefficients, getRules };
+// Regulatory comparison limits. unverified_count is reported so callers can see
+// that some limits have not been checked against the notification text.
+const getStandards = asyncHandler(async (req, res) => {
+  const { category, parameter, zone, standard, verified } = req.query;
+  const standards = await referenceModel.listStandards({
+    category,
+    parameterName: parameter,
+    zone,
+    standardName: standard,
+    verifiedOnly: verified === "true",
+  });
+  res.json({ standards, unverified_count: standards.filter((row) => !row.verified).length });
+});
+
+module.exports = { getCoefficients, getRules, getStandards };
