@@ -1,8 +1,11 @@
 const { Router } = require("express");
-const { body } = require("express-validator");
+const { body, param } = require("express-validator");
 const { requireAuth } = require("../middleware/auth");
 const { getAssessment, addInputs, listInputs } = require("../controllers/assessmentController");
+const { fetchEnvironmentalData, getEnvironmentalData } = require("../controllers/environmentalDataController");
 const { VALID_CATEGORIES } = require("../models/assessmentModel");
+
+const assessmentIdParam = param("id").isUUID().withMessage("Assessment id must be a UUID.");
 
 const router = Router();
 
@@ -23,5 +26,21 @@ router.post(
 );
 
 router.get("/:id/inputs", listInputs);
+
+// Sends the site location, project and inputs to the analytics service and stores the result.
+router.post(
+  "/:id/environmental-data",
+  [
+    assessmentIdParam,
+    body("radiusKm")
+      .optional({ values: "null" })
+      .isFloat({ gt: 0, max: 25 })
+      .withMessage("radiusKm must be greater than 0 and at most 25.")
+      .toFloat(),
+  ],
+  fetchEnvironmentalData
+);
+
+router.get("/:id/environmental-data", [assessmentIdParam], getEnvironmentalData);
 
 module.exports = router;

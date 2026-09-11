@@ -72,3 +72,36 @@ def test_required_inputs_match_project_input_items():
     project_items = [entry for section in catalogue.SECTIONS for entry in section.items if entry.required_input]
     assert len(inputs) == len(project_items)
     assert {"leq_day", "annual_production", "hazardous_waste", "soil_phosphorus"} <= {entry["parameter_name"] for entry in inputs}
+    assert not any(entry["provided"] for entry in inputs)
+
+
+def test_provided_inputs_ignore_blank_values_and_prefer_assessment_inputs_over_project():
+    provided = catalogue.provided_inputs(
+        [
+            {"category": "Noise", "parameter_name": "leq_night", "value_numeric": None, "value_text": "  "},
+            {"category": "Resource", "parameter_name": "land_requirement", "value_numeric": 8, "unit": "ha"},
+        ],
+        {"land_area": 12.5, "land_area_unit": "ha"},
+    )
+    assert "leq_night" not in provided
+    assert [(entry["value_numeric"], entry["origin"]) for entry in provided["land_requirement"]] == [(8, "assessment_input")]
+
+
+def test_project_land_area_fills_land_requirement():
+    provided = catalogue.provided_inputs([], {"land_area": 12.5, "land_area_unit": "ha"})
+    land = item(catalogue.evaluate([], {}, REQUEST, provided), "resource", "Land requirement")
+    assert (land["status"], land["sources"], land["summary"]) == ("available", ["project"], "Land requirement: 12.5 ha")
+
+    flags = {entry["parameter_name"]: entry["provided"] for entry in catalogue.required_inputs(provided)}
+    assert flags["land_requirement"] is True
+    assert flags["leq_day"] is False
+
+
+def test_one_input_satisfies_every_item_with_that_parameter():
+    provided = catalogue.provided_inputs(
+        [{"category": "Carbon", "parameter_name": "electricity_consumption", "value_numeric": 1200, "unit": "MWh/year"}], None
+    )
+    sections = catalogue.evaluate([], {}, REQUEST, provided)
+    assert item(sections, "carbon", "Electricity consumption")["status"] == "available"
+    assert item(sections, "resource", "Electricity consumption")["summary"] == "Electricity consumption: 1200 MWh/year"
+    assert {section["key"]: section["status"] for section in sections}["resource"] == "available"

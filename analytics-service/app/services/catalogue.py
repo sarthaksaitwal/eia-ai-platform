@@ -14,6 +14,8 @@ gis_feature.feature_type) satisfy it. After a fetch, each item is reported as:
 
 so the response accounts for every item in the specification, including the
 ones this service cannot legitimately derive from latitude/longitude.
+Project-input items become available once the backend sends a value for them
+(an assessment input, or a project field such as land area).
 """
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -23,6 +25,13 @@ UNAVAILABLE = "unavailable"
 ERROR = "error"
 SKIPPED = "skipped"
 PROJECT_INPUT = "project_input"
+
+# Where a provided required-input value came from.
+ASSESSMENT_INPUT = "assessment_input"
+PROJECT = "project"
+
+# Project fields that answer a required input when no assessment input was entered for it.
+PROJECT_FIELD_INPUTS = {"land_requirement": ("land_area", "land_area_unit")}
 
 
 @dataclass(frozen=True)
@@ -297,20 +306,51 @@ def _summary(record: dict) -> str:
     return f"{name}: {text}" if name and text else (name or text)
 
 
-def evaluate(records: list[dict], providers: dict[str, dict], request: dict[str, Any]) -> list[dict]:
-    """Status of every catalogue item for one fetch. providers is keyed by source_key."""
+def provided_inputs(assessment_inputs: Optional[list[dict]], project: Optional[dict]) -> dict[str, list[dict]]:
+    """Required-input values sent by the backend, keyed by parameter_name.
+
+    Inputs without a value are ignored. A project field only fills a required
+    input when no assessment input was entered for it."""
+    provided: dict[str, list[dict]] = {}
+    for entry in assessment_inputs or []:
+        if entry.get("value_numeric") is None and not (entry.get("value_text") or "").strip():
+            continue
+        provided.setdefault(entry["parameter_name"], []).append({**entry, "origin": ASSESSMENT_INPUT})
+
+    project = project or {}
+    for parameter_name, (value_field, unit_field) in PROJECT_FIELD_INPUTS.items():
+        if parameter_name not in provided and project.get(value_field) is not None:
+            provided[parameter_name] = [{
+                "parameter_name": parameter_name,
+                "value_numeric": project[value_field],
+                "unit": project.get(unit_field),
+                "origin": PROJECT,
+            }]
+    return provided
+
+
+def _input_summary(label: str, entry: dict) -> str:
+    value = f"{entry['value_numeric']:g}" if entry.get("value_numeric") is not None else entry.get("value_text")
+    return f"{label}: {value} {entry.get('unit') or ''}".strip()
+
+
+def evaluate(
+    records: list[dict], providers: dict[str, dict], request: dict[str, Any], provided: Optional[dict[str, list[dict]]] = None
+) -> list[dict]:
+    """Status of every catalogue item for one fetch. providers is keyed by source_key;
+    provided comes from provided_inputs()."""
     by_key: dict[str, list[dict]] = {}
     for record in records:
         by_key.setdefault(_record_key(record), []).append(record)
 
     sections = []
     for section in SECTIONS:
-        items = [_evaluate_item(item, by_key, providers, request) for item in section.items]
+        items = [_evaluate_item(item, by_key, providers, request, provided or {}) for item in section.items]
         sections.append({"key": section.key, "title": section.title, "status": _section_status(items), "items": items})
     return sections
 
 
-def _evaluate_item(item: Item, by_key: dict, providers: dict, request: dict) -> dict:
+def _evaluate_item(item: Item, by_key: dict, providers: dict, request: dict, provided: dict) -> dict:
     result = {
         "label": item.label,
         "spec_provider": item.spec_provider,
@@ -325,6 +365,15 @@ def _evaluate_item(item: Item, by_key: dict, providers: dict, request: dict) -> 
     if item.from_request:
         return {**result, "status": AVAILABLE, "sources": ["request"], "summary": str(request.get(item.from_request))}
     if item.required_input:
+        entries = provided.get(item.required_input.parameter_name, [])
+        if entries:
+            return {
+                **result,
+                "status": AVAILABLE,
+                "sources": sorted({entry["origin"] for entry in entries}),
+                "summary": _input_summary(item.label, entries[-1]),
+                "record_count": len(entries),
+            }
         return {
             **result,
             "status": PROJECT_INPUT,
@@ -365,8 +414,9 @@ def _section_status(items: list[dict]) -> str:
     return PROJECT_INPUT
 
 
-def required_inputs() -> list[dict]:
+def required_inputs(provided: Optional[dict[str, list[dict]]] = None) -> list[dict]:
     """Assessment inputs the specification expects from the project/consultant."""
+    provided = provided or {}
     return [
         {
             "section": section.key,
@@ -375,6 +425,7 @@ def required_inputs() -> list[dict]:
             "parameter_name": item.required_input.parameter_name,
             "suggested_unit": item.required_input.suggested_unit,
             "source": item.spec_provider,
+            "provided": item.required_input.parameter_name in provided,
         }
         for section in SECTIONS
         for item in section.items

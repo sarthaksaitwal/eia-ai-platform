@@ -7,13 +7,60 @@ ProviderStatus = Literal["available", "unavailable", "error", "skipped"]
 ItemStatus = Literal["available", "unavailable", "error", "skipped", "project_input"]
 
 
-class EnvironmentalDataRequest(BaseModel):
-    assessment_id: Optional[str] = Field(default=None, description="Echoed back for traceability only.")
+class SiteLocation(BaseModel):
+    """projects -> project_locations row for the assessed site."""
+
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
+    address: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    # Declared by the project, not derived from the coordinate: ambient noise
+    # limits depend on the area class, and NAAQS SO2/NO2 limits are stricter in
+    # a notified ecologically sensitive area.
+    area_classification: Optional[str] = None
+    ecologically_sensitive: Optional[bool] = None
+
+
+class ProjectContext(BaseModel):
+    """Project fields relevant to the environmental baseline."""
+
+    id: Optional[str] = None
+    name: Optional[str] = None
+    industry: Optional[str] = None
+    project_type: Optional[str] = None
+    capacity: Optional[float] = Field(default=None, ge=0)
+    capacity_unit: Optional[str] = None
+    land_area: Optional[float] = Field(default=None, ge=0)
+    land_area_unit: Optional[str] = None
+    employees: Optional[int] = Field(default=None, ge=0)
+    operating_hours_per_day: Optional[float] = Field(default=None, ge=0, le=24)
+
+
+class AssessmentInput(BaseModel):
+    """One assessment_inputs row entered by the project developer or consultant."""
+
+    category: str
+    parameter_name: str = Field(min_length=1)
+    value_numeric: Optional[float] = None
+    value_text: Optional[str] = None
+    unit: Optional[str] = None
+    source: Optional[str] = None
+
+
+class EnvironmentalDataRequest(BaseModel):
+    assessment_id: Optional[str] = Field(default=None, description="Echoed back for traceability only.")
+    location: SiteLocation
     radius_km: Optional[float] = Field(
         default=None, gt=0, le=25,
         description="Radius for monitoring stations and wide-area GIS features. Defaults to DEFAULT_RADIUS_KM.",
+    )
+    project: Optional[ProjectContext] = None
+    assessment_inputs: list[AssessmentInput] = Field(
+        default_factory=list,
+        description="Values already entered for the assessment; they satisfy the matching required inputs.",
     )
 
 
@@ -22,6 +69,9 @@ class RequestEcho(BaseModel):
     latitude: float
     longitude: float
     radius_km: float
+    location: SiteLocation
+    project: Optional[ProjectContext] = None
+    assessment_input_count: int = 0
 
 
 class Observation(BaseModel):
@@ -99,6 +149,7 @@ class RequiredInput(BaseModel):
     parameter_name: str
     suggested_unit: Optional[str] = None
     source: str
+    provided: bool = False
 
 
 class EnvironmentalDataResponse(BaseModel):

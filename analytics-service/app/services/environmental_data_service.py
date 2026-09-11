@@ -131,8 +131,17 @@ async def _run_provider(
 
 
 async def collect_environmental_data(
-    latitude: float, longitude: float, *, radius_km: Optional[float] = None, assessment_id: Optional[str] = None
+    latitude: float,
+    longitude: float,
+    *,
+    radius_km: Optional[float] = None,
+    assessment_id: Optional[str] = None,
+    location: Optional[dict] = None,
+    project: Optional[dict] = None,
+    assessment_inputs: Optional[list[dict]] = None,
 ) -> dict:
+    """location, project and assessment_inputs come from the Node backend. Providers
+    only use the coordinates; inputs and project fields resolve required inputs."""
     started = time.monotonic()
     now = datetime.now(timezone.utc)
     origin = (latitude, longitude)
@@ -271,7 +280,15 @@ async def collect_environmental_data(
 
     providers = [outcome for outcome, _ in results]
     records = [record for _, result in results for record in result.records]
-    request = {"assessment_id": assessment_id, **coordinates, "radius_km": radius_km}
+    provided = catalogue.provided_inputs(assessment_inputs, project)
+    request = {
+        "assessment_id": assessment_id,
+        **coordinates,
+        "radius_km": radius_km,
+        "location": {**(location or {}), **coordinates},
+        "project": project,
+        "assessment_input_count": len(assessment_inputs or []),
+    }
 
     return {
         "request": request,
@@ -279,8 +296,8 @@ async def collect_environmental_data(
         "duration_ms": int((time.monotonic() - started) * 1000),
         "observations": [record for record in records if "parameter" in record],
         "gis_features": [record for record in records if "feature_type" in record],
-        "sections": catalogue.evaluate(records, {outcome["source_key"]: outcome for outcome in providers}, request),
-        "required_inputs": catalogue.required_inputs(),
+        "sections": catalogue.evaluate(records, {outcome["source_key"]: outcome for outcome in providers}, request, provided),
+        "required_inputs": catalogue.required_inputs(provided),
         "providers": providers,
         "warnings": [warning for _, result in results for warning in result.warnings],
     }

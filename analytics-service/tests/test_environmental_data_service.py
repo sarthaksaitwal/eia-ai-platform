@@ -102,7 +102,26 @@ async def test_collect_reports_every_provider_and_splits_records(fake_providers)
     }
     assert len(result["sections"]) == 13
     assert result["required_inputs"]
-    assert result["request"] == {"assessment_id": "a-1", "latitude": SITE[0], "longitude": SITE[1], "radius_km": settings.default_radius_km}
+    assert result["request"] == {
+        "assessment_id": "a-1", "latitude": SITE[0], "longitude": SITE[1], "radius_km": settings.default_radius_km,
+        "location": {"latitude": SITE[0], "longitude": SITE[1]}, "project": None, "assessment_input_count": 0,
+    }
+
+
+async def test_backend_inputs_and_project_resolve_required_inputs(fake_providers):
+    result = await service.collect_environmental_data(
+        *SITE,
+        location={"latitude": SITE[0], "longitude": SITE[1], "state": "Delhi"},
+        project={"industry": "Cement", "land_area": 12.5, "land_area_unit": "ha"},
+        assessment_inputs=[{"category": "Noise", "parameter_name": "leq_day", "value_numeric": 55.0, "unit": "dB(A)"}],
+    )
+
+    noise = next(section for section in result["sections"] if section["key"] == "noise")
+    leq_day = next(entry for entry in noise["items"] if entry["label"] == "Leq Day")
+    assert (leq_day["status"], leq_day["sources"], leq_day["summary"]) == ("available", ["assessment_input"], "Leq Day: 55 dB(A)")
+    assert {entry["parameter_name"] for entry in result["required_inputs"] if entry["provided"]} == {"leq_day", "land_requirement"}
+    assert result["request"]["location"] == {"latitude": SITE[0], "longitude": SITE[1], "state": "Delhi"}
+    assert result["request"]["assessment_input_count"] == 1
 
 
 async def test_error_reasons_never_include_urls_or_keys(fake_providers):

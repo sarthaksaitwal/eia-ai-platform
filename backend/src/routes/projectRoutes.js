@@ -10,6 +10,9 @@ const {
 } = require("../controllers/projectController");
 const assessmentRoutes = require("./assessmentRoutes");
 
+// Must match chk_project_locations_area_classification (migration 004).
+const AREA_CLASSIFICATIONS = ["Industrial", "Commercial", "Residential", "Silence Zone", "Rural/Other"];
+
 const router = Router();
 
 router.use(requireAuth);
@@ -21,6 +24,12 @@ router.post(
     body("project.industry").trim().notEmpty().withMessage("Industry is required."),
     body("location.latitude").optional().isFloat({ min: -90, max: 90 }),
     body("location.longitude").optional().isFloat({ min: -180, max: 180 }),
+    // Declared by the user: ambient noise limits depend on it (see regulatory_standards.zone).
+    body("location.areaClassification")
+      .optional()
+      .isIn(AREA_CLASSIFICATIONS)
+      .withMessage(`areaClassification must be one of: ${AREA_CLASSIFICATIONS.join(", ")}`),
+    body("location.ecologicallySensitive").optional().isBoolean(),
   ],
   createProject
 );
