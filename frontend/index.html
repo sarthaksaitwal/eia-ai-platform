@@ -4,7 +4,25 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>eia-platform</title>
+
+    <title>EIA Platform</title>
+    <meta
+      name="description"
+      content="AI-assisted environmental impact assessment: record a project and its site, collect the environmental baseline, and compare it against regulatory limits."
+    />
+    <meta name="theme-color" content="#0369a1" />
+
+    <!-- The font is linked here rather than @imported from index.css. A CSS
+         @import cannot start downloading until the stylesheet that contains it
+         has arrived, so the font request was queued behind the bundle; a link
+         with preconnect starts both in parallel and shortens the spell where
+         text renders in the fallback face. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap"
+    />
   </head>
   <body>
     <div id="root"></div>

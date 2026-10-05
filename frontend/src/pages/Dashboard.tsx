@@ -1,297 +1,276 @@
+import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowUpRight,
   ClipboardCheck,
+  Database,
   FolderKanban,
-  FileText,
+  Info,
   MapPin,
-  MoreHorizontal,
+  Plus,
+  Scale,
+  ShieldAlert,
 } from "lucide-react";
 
-import { demoProject, recentProjects } from "../data/dummyData";
-
-const impactItems = [
-  { label: "Air", value: demoProject.impacts.air },
-  { label: "Water", value: demoProject.impacts.water },
-  { label: "Ecology", value: demoProject.impacts.ecology },
-  { label: "Carbon", value: demoProject.impacts.carbon },
-  { label: "Resource", value: demoProject.impacts.resource },
-  { label: "Waste", value: demoProject.impacts.waste },
-  { label: "Noise", value: demoProject.impacts.noise },
-];
-
-function getScoreLabel(score: number) {
-  if (score >= 75) return "High";
-  if (score >= 50) return "Moderate";
-  return "Low";
-}
-
-function getScoreText(score: number) {
-  if (score >= 75) return "text-red-700";
-  if (score >= 50) return "text-amber-700";
-  return "text-emerald-700";
-}
+import { Empty, ErrorState, Loading } from "../components/ui/States";
+import {
+  Badge,
+  ButtonLink,
+  Card,
+  CardHeader,
+  Note,
+  PageHeader,
+  StatCard,
+} from "../components/ui/Primitives";
+import { api } from "../lib/api";
+import { useApi } from "../lib/useApi";
+import { useAuth } from "../lib/auth";
+import { formatCoords, formatCount, formatDate } from "../lib/format";
+import type { Assessment } from "../lib/types";
 
 export default function Dashboard() {
+  const { user } = useAuth();
+
+  const projects = useApi(() => api.listProjects(), []);
+
+  // There is no endpoint that lists every assessment, only one per project,
+  // so the per-project calls run together and the results are flattened.
+  const projectIds = (projects.data?.projects ?? []).map((p) => p.id).join(",");
+  const assessments = useApi(async () => {
+    const list = projects.data?.projects ?? [];
+    if (!list.length) return [] as Assessment[];
+    const results = await Promise.all(list.map((p) => api.listAssessments(p.id)));
+    return results.flatMap((r) => r.assessments);
+  }, [projectIds]);
+
+  const standards = useApi(() => api.listStandards(), []);
+  const coefficients = useApi(() => api.listCoefficients(), []);
+
+  const projectRows = projects.data?.projects ?? [];
+  const assessmentRows = assessments.data ?? [];
+  const standardRows = useMemo(() => standards.data?.standards ?? [], [standards.data]);
+  const coefficientRows = useMemo(
+    () => coefficients.data?.coefficients ?? [],
+    [coefficients.data]
+  );
+
+  // Only a coefficient with an input parameter and both units can turn an
+  // entered quantity into a result; the rest are reference-only rows.
+  const usableCoefficients = useMemo(
+    () =>
+      coefficientRows.filter((c) => c.input_parameter && c.unit && c.result_unit && c.active)
+        .length,
+    [coefficientRows]
+  );
+
+  const byStandard = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const row of standardRows) {
+      counts.set(row.standard_name, (counts.get(row.standard_name) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [standardRows]);
+
+  const recent = [...projectRows]
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .slice(0, 5);
+
+  const unverified = standards.data?.unverified_count ?? 0;
+
   return (
     <div>
-      {/* Page heading */}
-      <div className="mb-7 flex items-end justify-between">
-        <div>
-          <p className="mb-1 text-sm font-medium text-emerald-700">
-            Overview
-          </p>
+      <PageHeader
+        eyebrow="Overview"
+        title={user ? `Welcome back, ${user.name.split(" ")[0]}` : "Dashboard"}
+        hint="Projects, sites and the reference data available for comparison."
+        action={
+          <ButtonLink to="/projects/new" icon={Plus}>
+            New project
+          </ButtonLink>
+        }
+      />
 
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            Dashboard
-          </h1>
+      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Projects"
+          value={projects.loading ? "—" : formatCount(projectRows.length)}
+          icon={FolderKanban}
+          to="/projects"
+        />
 
-          <p className="mt-1 text-sm text-slate-500">
-            Monitor your environmental assessments and project activity.
-          </p>
-        </div>
+        <StatCard
+          label="Assessments"
+          value={assessments.loading ? "—" : formatCount(assessmentRows.length)}
+          icon={ClipboardCheck}
+          to="/projects"
+        />
 
-        <button className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-800">
-          <ClipboardCheck size={16} />
-          New Assessment
-        </button>
+        <StatCard
+          label="Regulatory limits"
+          value={standards.loading ? "—" : formatCount(standardRows.length)}
+          hint={standards.loading ? undefined : `${formatCount(unverified)} not yet checked`}
+          icon={Scale}
+        />
+
+        <StatCard
+          label="Usable coefficients"
+          value={coefficients.loading ? "—" : formatCount(usableCoefficients)}
+          hint={
+            coefficients.loading
+              ? undefined
+              : `of ${formatCount(coefficientRows.length)} seeded rows`
+          }
+          icon={Database}
+        />
       </div>
 
-      {/* Main project */}
-      <section className="mb-6 border border-slate-200 bg-white">
-        <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                Active Project
-              </span>
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
+          <CardHeader
+            title="Recent projects"
+            hint="The five most recently created."
+            action={
+              <Link
+                to="/projects"
+                className="flex items-center gap-1 text-xs font-semibold text-brand transition-colors duration-200 hover:text-brand-hover"
+              >
+                View all
+                <ArrowUpRight size={13} aria-hidden="true" />
+              </Link>
+            }
+          />
 
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
-                {demoProject.status}
-              </span>
+          {projects.loading && <Loading label="Loading projects..." />}
+
+          {projects.error && (
+            <div className="p-5">
+              <ErrorState message={projects.error} onRetry={projects.reload} />
             </div>
+          )}
 
-            <h2 className="text-lg font-semibold text-slate-900">
-              {demoProject.name}
-            </h2>
+          {!projects.loading && !projects.error && recent.length === 0 && (
+            <Empty
+              title="No projects yet"
+              hint="Create a project to record its site and collect its environmental baseline."
+              action={
+                <ButtonLink to="/projects/new" icon={Plus}>
+                  Create a project
+                </ButtonLink>
+              }
+            />
+          )}
 
-            <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
-              <MapPin size={14} />
-              {demoProject.location}
-            </div>
-          </div>
+          <ul>
+            {recent.map((project) => {
+              const place =
+                [project.city, project.district, project.state].filter(Boolean).join(", ") ||
+                formatCoords(project.latitude, project.longitude) ||
+                "No location set";
 
-          <button className="text-slate-400 hover:text-slate-700">
-            <MoreHorizontal size={19} />
-          </button>
-        </div>
+              const count = assessmentRows.filter((a) => a.project_id === project.id).length;
 
-        <div className="grid grid-cols-4 divide-x divide-slate-200">
-          <div className="px-6 py-5">
-            <p className="text-xs text-slate-500">Project Type</p>
-            <p className="mt-1 text-sm font-medium text-slate-800">
-              {demoProject.type}
-            </p>
-          </div>
-
-          <div className="px-6 py-5">
-            <p className="text-xs text-slate-500">Industry</p>
-            <p className="mt-1 text-sm font-medium text-slate-800">
-              {demoProject.industry}
-            </p>
-          </div>
-
-          <div className="px-6 py-5">
-            <p className="text-xs text-slate-500">Project Area</p>
-            <p className="mt-1 text-sm font-medium text-slate-800">
-              {demoProject.area}
-            </p>
-          </div>
-
-          <div className="px-6 py-5">
-            <p className="text-xs text-slate-500">Investment</p>
-            <p className="mt-1 text-sm font-medium text-slate-800">
-              {demoProject.investment}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Statistics */}
-      <div className="mb-6 grid grid-cols-4 gap-4">
-        <div className="border border-slate-200 bg-white p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex h-9 w-9 items-center justify-center bg-slate-100 text-slate-600">
-              <FolderKanban size={18} />
-            </div>
-
-            <ArrowUpRight size={16} className="text-slate-400" />
-          </div>
-
-          <p className="text-xs text-slate-500">Total Projects</p>
-          <p className="mt-1 text-2xl font-semibold text-slate-900">12</p>
-        </div>
-
-        <div className="border border-slate-200 bg-white p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex h-9 w-9 items-center justify-center bg-slate-100 text-slate-600">
-              <ClipboardCheck size={18} />
-            </div>
-
-            <ArrowUpRight size={16} className="text-slate-400" />
-          </div>
-
-          <p className="text-xs text-slate-500">Assessments Completed</p>
-          <p className="mt-1 text-2xl font-semibold text-slate-900">8</p>
-        </div>
-
-        <div className="border border-slate-200 bg-white p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex h-9 w-9 items-center justify-center bg-amber-50 text-amber-700">
-              <span className="text-sm font-semibold">64</span>
-            </div>
-          </div>
-
-          <p className="text-xs text-slate-500">Current Impact Score</p>
-          <p className="mt-1 text-2xl font-semibold text-slate-900">
-            {demoProject.overallScore}
-            <span className="ml-1 text-sm font-normal text-slate-400">
-              /100
-            </span>
-          </p>
-        </div>
-
-        <div className="border border-slate-200 bg-white p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex h-9 w-9 items-center justify-center bg-emerald-50 text-emerald-700">
-              <FileText size={18} />
-            </div>
-
-            <ArrowUpRight size={16} className="text-slate-400" />
-          </div>
-
-          <p className="text-xs text-slate-500">Reports Generated</p>
-          <p className="mt-1 text-2xl font-semibold text-slate-900">6</p>
-        </div>
-      </div>
-
-      {/* Impact + recent assessments */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Impact overview */}
-        <section className="col-span-2 border border-slate-200 bg-white">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900">
-                Environmental Impact Overview
-              </h2>
-
-              <p className="mt-0.5 text-xs text-slate-500">
-                Factor-wise scores for the active project
-              </p>
-            </div>
-
-            <button className="text-xs font-medium text-emerald-700 hover:text-emerald-800">
-              View assessment
-            </button>
-          </div>
-
-          <div className="p-6">
-            <div className="space-y-5">
-              {impactItems.map((item) => (
-                <div key={item.label}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700">
-                      {item.label}
+              return (
+                <li key={project.id} className="border-b border-line last:border-b-0">
+                  <Link
+                    to={`/projects/${project.id}/location`}
+                    className="flex flex-col gap-2 px-5 py-3.5 transition-colors duration-200 hover:bg-surface-sunken sm:flex-row sm:items-center sm:gap-4"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-neutral-soft text-ink-muted">
+                      <FolderKanban size={17} aria-hidden="true" />
                     </span>
 
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-medium ${getScoreText(
-                          item.value
-                        )}`}
-                      >
-                        {getScoreLabel(item.value)}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-ink">
+                        {project.name}
                       </span>
 
-                      <span className="w-8 text-right text-sm font-semibold text-slate-800">
-                        {item.value}
+                      <span className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-subtle">
+                        <MapPin size={12} className="shrink-0" aria-hidden="true" />
+                        <span className="truncate">{place}</span>
                       </span>
-                    </div>
-                  </div>
+                    </span>
 
-                  <div className="h-2 w-full bg-slate-100">
-                    <div
-                      className={`h-full ${
-                        item.value >= 75
-                          ? "bg-red-500"
-                          : item.value >= 50
-                            ? "bg-amber-500"
-                            : "bg-emerald-600"
-                      }`}
-                      style={{ width: `${item.value}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                    <span className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 pl-12 text-xs text-ink-muted sm:pl-0">
+                      <span className="truncate">{project.industry}</span>
+
+                      <span className="tabular">
+                        {formatCount(count)} assessment{count === 1 ? "" : "s"}
+                      </span>
+
+                      <span className="tabular text-ink-subtle">
+                        {formatDate(project.created_at)}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+
+        <Card>
+          <CardHeader title="Reference data" hint="Seeded limits available for comparison." />
+
+          {standards.loading && <Loading label="Loading standards..." />}
+
+          {standards.error && (
+            <div className="p-5">
+              <ErrorState message={standards.error} onRetry={standards.reload} />
             </div>
-          </div>
-        </section>
+          )}
 
-        {/* Recent projects */}
-        <section className="border border-slate-200 bg-white">
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900">
-                Recent Assessments
-              </h2>
-
-              <p className="mt-0.5 text-xs text-slate-500">
-                Latest completed projects
-              </p>
-            </div>
-          </div>
-
-          <div className="divide-y divide-slate-100">
-            {recentProjects.map((project) => (
-              <div key={project.name} className="px-5 py-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">
-                      {project.name}
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      {project.location}
-                    </p>
-                  </div>
-
-                  <span
-                    className={`shrink-0 text-sm font-semibold ${getScoreText(
-                      project.score
-                    )}`}
+          {!standards.loading && !standards.error && (
+            <>
+              <ul>
+                {byStandard.map(([standardName, count]) => (
+                  <li
+                    key={standardName}
+                    className="flex items-center justify-between gap-3 border-b border-line px-5 py-2.5 last:border-b-0"
                   >
-                    {project.score}
-                  </span>
+                    <span className="min-w-0 truncate text-sm text-ink-muted">
+                      {standardName}
+                    </span>
+
+                    <span className="tabular shrink-0 text-sm font-semibold text-ink">
+                      {formatCount(count)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              {unverified > 0 && (
+                <div className="border-t border-line p-4">
+                  <Note tone="warn" icon={ShieldAlert} title="Provisional reference data">
+                    {formatCount(unverified)} of {formatCount(standardRows.length)} limits have
+                    not been checked against the notification text by a person yet. A comparison
+                    against them is provisional until they are.
+                  </Note>
                 </div>
+              )}
+            </>
+          )}
+        </Card>
+      </div>
 
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400">
-                    {project.status}
-                  </span>
+      {/* The calculation engine is not built, so there are no impact results
+          to show. Saying so beats an empty chart that looks broken. */}
+      <div className="mt-5">
+        <Note tone="neutral" icon={Info} title="Impact results are not calculated yet">
+          <p>
+            The platform currently records projects, sites and the collected environmental
+            baseline. Quantities and within-limit comparisons appear here once the calculation
+            engine is built, and will be derived from the seeded coefficients and limits.
+          </p>
 
-                  <span className="text-[11px] text-slate-400">
-                    Impact score
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="border-t border-slate-200 px-5 py-3">
-            <button className="text-xs font-medium text-emerald-700 hover:text-emerald-800">
-              View all assessments →
-            </button>
-          </div>
-        </section>
+          <p className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge tone="ok">Within limit</Badge>
+            <Badge tone="risk">Outside limit</Badge>
+            <Badge tone="neutral">Not compared</Badge>
+            <span className="text-xs text-ink-subtle">
+              the three verdicts a comparison can produce
+            </span>
+          </p>
+        </Note>
       </div>
     </div>
   );

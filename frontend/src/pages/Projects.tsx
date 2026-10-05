@@ -1,168 +1,254 @@
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
+  CheckCircle2,
+  CircleDashed,
   FolderKanban,
   MapPin,
   Plus,
   Search,
-  MoreHorizontal,
+  Timer,
 } from "lucide-react";
+import type { ComponentType, ReactNode } from "react";
 
-import { demoProject, recentProjects } from "../data/dummyData";
+import { Empty, ErrorState, Loading } from "../components/ui/States";
+import {
+  Badge,
+  ButtonLink,
+  Card,
+  PageHeader,
+  type Tone,
+} from "../components/ui/Primitives";
+import { inputClass, selectClass } from "../components/ui/fieldStyles";
+import { api } from "../lib/api";
+import { useApi } from "../lib/useApi";
+import { formatCoords, formatCount, formatDate } from "../lib/format";
+import type { Project } from "../lib/types";
 
-const projects = [
-  {
-    name: demoProject.name,
-    type: demoProject.type,
-    industry: demoProject.industry,
-    location: demoProject.location,
-    score: demoProject.overallScore,
-    status: demoProject.status,
-  },
-  ...recentProjects.map((project) => ({
-    name: project.name,
-    type: "Industrial",
-    industry: "Manufacturing",
-    location: project.location,
-    score: project.score,
-    status: project.status,
-  })),
-];
+// projects.status is free text in the schema, so this maps only the values the
+// backend actually sets and leaves anything else neutral. Each status carries
+// an icon as well as a colour: the verdict has to survive being read by
+// someone who cannot tell the two hues apart, or printed in grey.
+const STATUS: Record<
+  string,
+  { tone: Tone; icon: ComponentType<{ size?: number; className?: string }> }
+> = {
+  Completed: { tone: "ok", icon: CheckCircle2 },
+  "In Progress": { tone: "brand", icon: Timer },
+  Draft: { tone: "neutral", icon: CircleDashed },
+};
 
-function getScoreText(score: number) {
-  if (score >= 75) return "text-red-700";
-  if (score >= 50) return "text-amber-700";
-  return "text-emerald-700";
+// findProjectsByUser flattens the location columns onto the row rather than
+// nesting them, so the place a project sits has to be assembled here.
+function placeOf(project: Project) {
+  const parts = [project.city, project.district, project.state].filter(
+    (part): part is string => Boolean(part && part.trim())
+  );
+  if (parts.length) return parts.join(", ");
+
+  return formatCoords(project.latitude, project.longitude) ?? "No location set";
+}
+
+const COLUMNS = "lg:grid-cols-[2.2fr_1fr_1.3fr_1.5fr_0.9fr_1fr]";
+
+/**
+ * One cell. Below lg the table has no header row to refer back to, so each
+ * cell carries its own label and the row reads as a small record instead of a
+ * line of unexplained values.
+ */
+function Cell({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 items-baseline justify-between gap-3 lg:block">
+      <span className="shrink-0 text-xs text-ink-subtle lg:hidden">{label}</span>
+      <span className="min-w-0 truncate text-right text-sm text-ink-muted lg:text-left">
+        {children}
+      </span>
+    </div>
+  );
 }
 
 export default function Projects() {
+  const { data, loading, error, reload } = useApi(() => api.listProjects(), []);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("All");
+
+  // Memoised so the filters below are not rebuilt on every render.
+  const projects = useMemo(() => data?.projects ?? [], [data]);
+
+  const statuses = useMemo(
+    () => ["All", ...Array.from(new Set(projects.map((p) => p.status))).sort()],
+    [projects]
+  );
+
+  const visible = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return projects.filter((project) => {
+      if (status !== "All" && project.status !== status) return false;
+      if (!term) return true;
+      return (
+        project.name.toLowerCase().includes(term) ||
+        project.industry.toLowerCase().includes(term) ||
+        placeOf(project).toLowerCase().includes(term)
+      );
+    });
+  }, [projects, search, status]);
+
   return (
     <div>
-      {/* Page heading */}
-      <div className="mb-7 flex items-end justify-between">
-        <div>
-          <p className="mb-1 text-sm font-medium text-emerald-700">
-            Projects
-          </p>
+      <PageHeader
+        eyebrow="Projects"
+        title="All projects"
+        hint="Every project you have created, newest filters applied live."
+        action={
+          <ButtonLink to="/projects/new" icon={Plus}>
+            Create project
+          </ButtonLink>
+        }
+      />
 
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            All Projects
-          </h1>
+      {loading && <Loading label="Loading your projects..." />}
 
-          <p className="mt-1 text-sm text-slate-500">
-            View and manage your environmental assessment projects.
-          </p>
-        </div>
+      {!loading && error && <ErrorState message={error} onRetry={reload} />}
 
-        <button className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-800">
-          <Plus size={16} />
-          Create Project
-        </button>
-      </div>
+      {!loading && !error && projects.length === 0 && (
+        <Empty
+          title="No projects yet"
+          hint="Create a project to record its site and start an environmental assessment."
+          action={
+            <ButtonLink to="/projects/new" icon={Plus}>
+              Create your first project
+            </ButtonLink>
+          }
+        />
+      )}
 
-      {/* Search and filters */}
-      <div className="mb-5 flex items-center justify-between border border-slate-200 bg-white px-5 py-4">
-        <div className="relative w-80">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
+      {!loading && !error && projects.length > 0 && (
+        <>
+          <Card className="mb-4">
+            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full sm:max-w-sm">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
+                  aria-hidden="true"
+                />
 
-          <input
-            type="text"
-            placeholder="Search projects..."
-            className="h-9 w-full rounded-md border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-emerald-600 focus:bg-white"
-          />
-        </div>
-
-        <select className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-emerald-600">
-          <option>All Statuses</option>
-          <option>Assessment Completed</option>
-          <option>In Progress</option>
-          <option>Draft</option>
-        </select>
-      </div>
-
-      {/* Project table */}
-      <div className="border border-slate-200 bg-white">
-        <div className="grid grid-cols-[2fr_1fr_1.4fr_1.5fr_0.8fr_1.2fr_40px] items-center border-b border-slate-200 bg-slate-50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          <span>Project</span>
-          <span>Type</span>
-          <span>Industry</span>
-          <span>Location</span>
-          <span>Score</span>
-          <span>Status</span>
-          <span></span>
-        </div>
-
-        {projects.map((project) => (
-          <div
-            key={project.name}
-            className="grid grid-cols-[2fr_1fr_1.4fr_1.5fr_0.8fr_1.2fr_40px] items-center border-b border-slate-100 px-5 py-4 last:border-b-0 hover:bg-slate-50/60"
-          >
-            {/* Project */}
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-slate-100 text-slate-600">
-                <FolderKanban size={17} />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search name, industry or place"
+                  aria-label="Search projects"
+                  className={`${inputClass} pl-9`}
+                />
               </div>
 
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-800">
-                  {project.name}
-                </p>
-
-                <p className="mt-0.5 text-xs text-slate-400">
-                  Environmental assessment
-                </p>
-              </div>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                aria-label="Filter by status"
+                className={`${selectClass} sm:w-48`}
+              >
+                {statuses.map((option) => (
+                  <option key={option} value={option}>
+                    {option === "All" ? "All statuses" : option}
+                  </option>
+                ))}
+              </select>
             </div>
+          </Card>
 
-            {/* Type */}
-            <span className="text-sm text-slate-600">
-              {project.type}
-            </span>
-
-            {/* Industry */}
-            <span className="text-sm text-slate-600">
-              {project.industry}
-            </span>
-
-            {/* Location */}
-            <div className="flex items-center gap-1.5 text-sm text-slate-600">
-              <MapPin size={14} className="text-slate-400" />
-              <span className="truncate">{project.location}</span>
-            </div>
-
-            {/* Score */}
-            <span
-              className={`text-sm font-semibold ${getScoreText(
-                project.score
-              )}`}
+          <Card>
+            <div
+              className={`hidden border-b border-line bg-surface-sunken px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle lg:grid ${COLUMNS} lg:items-center lg:gap-3`}
             >
-              {project.score}/100
-            </span>
+              <span>Project</span>
+              <span>Type</span>
+              <span>Industry</span>
+              <span>Location</span>
+              <span>Created</span>
+              <span>Status</span>
+            </div>
 
-            {/* Status */}
-            <span className="inline-flex w-fit rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
-              {project.status}
-            </span>
+            <ul>
+              {visible.map((project) => {
+                const skin = STATUS[project.status] ?? { tone: "neutral" as Tone, icon: undefined };
 
-            {/* Actions */}
-            <button className="text-slate-400 hover:text-slate-700">
-              <MoreHorizontal size={18} />
-            </button>
-          </div>
-        ))}
+                return (
+                  <li key={project.id} className="border-b border-line last:border-b-0">
+                    {/* A link rather than a div with onClick: the row is then
+                        reachable by keyboard, openable in a new tab, and
+                        readable as a destination by a screen reader. */}
+                    <Link
+                      to={`/projects/${project.id}/location`}
+                      className={`flex flex-col gap-2 p-4 transition-colors duration-200 hover:bg-surface-sunken lg:grid ${COLUMNS} lg:items-center lg:gap-3 lg:px-5 lg:py-3.5`}
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-neutral-soft text-ink-muted">
+                          <FolderKanban size={17} aria-hidden="true" />
+                        </span>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
-          <span className="text-xs text-slate-500">
-            Showing {projects.length} projects
-          </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-ink">
+                            {project.name}
+                          </span>
+                          <span className="mt-0.5 block truncate text-xs text-ink-subtle">
+                            {project.description || "Environmental assessment"}
+                          </span>
+                        </span>
+                      </div>
 
-          <span className="text-xs text-slate-400">
-            All projects
-          </span>
-        </div>
-      </div>
+                      <Cell label="Type">{project.project_type || "—"}</Cell>
+
+                      <Cell label="Industry">{project.industry}</Cell>
+
+                      <div className="flex min-w-0 items-baseline justify-between gap-3 lg:block">
+                        <span className="shrink-0 text-xs text-ink-subtle lg:hidden">
+                          Location
+                        </span>
+
+                        <span className="flex min-w-0 items-center gap-1.5 text-sm text-ink-muted">
+                          <MapPin
+                            size={14}
+                            className="hidden shrink-0 text-ink-subtle lg:block"
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">{placeOf(project)}</span>
+                        </span>
+                      </div>
+
+                      <Cell label="Created">
+                        <span className="tabular">{formatDate(project.created_at)}</span>
+                      </Cell>
+
+                      <div className="flex items-center justify-between gap-3 lg:block">
+                        <span className="shrink-0 text-xs text-ink-subtle lg:hidden">Status</span>
+                        <Badge tone={skin.tone} icon={skin.icon}>
+                          {project.status}
+                        </Badge>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {visible.length === 0 && (
+              <div className="px-5 py-10 text-center">
+                <p className="text-sm font-semibold text-ink">No project matches that filter</p>
+                <p className="mt-1 text-sm text-ink-muted">
+                  Try a different search term, or set the status back to all.
+                </p>
+              </div>
+            )}
+
+            <div className="tabular border-t border-line bg-surface-sunken px-5 py-2.5 text-xs text-ink-subtle">
+              Showing {formatCount(visible.length)} of {formatCount(projects.length)}{" "}
+              {projects.length === 1 ? "project" : "projects"}
+            </div>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

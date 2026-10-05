@@ -1,14 +1,104 @@
 @import "tailwindcss";
 
-:root {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+/* Atkinson Hyperlegible is drawn for legibility rather than character: the
+   letterforms are disambiguated (1 l I, 0 O) so a transcribed limit value is
+   hard to misread, which is the whole job on a screen full of them. It is
+   linked from index.html rather than @imported here, for the reason given
+   there. It ships 400 and 700 only, which is why this UI uses font-normal and
+   font-semibold and never font-medium -- see the weight note below. */
+
+/* ---------------------------------------------------------------------------
+   Design tokens
+
+   Every colour a component uses comes from here, so a change lands in one
+   place and nothing drifts. Raw hex values do not belong in components.
+
+   The split between brand and status colour is deliberate and load-bearing.
+   This platform compares a measured value against a regulatory limit, and the
+   verdict is within_limit / outside_limit / not_compared. Green therefore has
+   to mean "within limit" and nothing else, so the brand colour cannot be
+   green -- it is the blue below. The previous emerald brand made the two
+   meanings compete.
+--------------------------------------------------------------------------- */
+@theme {
+  --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", sans-serif;
 
-  color: #1f2933;
-  background: #f7f8f6;
+  /* Surfaces. A slightly deeper canvas lets white cards lift without shadow,
+     which keeps a dense page calm. */
+  --color-canvas: #eef2f6;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f8fafc;
+  --color-surface-hover: #f1f5f9;
 
+  /* line divides and frames; line-strong is the boundary of a control.
+     WCAG 1.4.11 asks 3:1 for the edge that tells you an input is an input, and
+     the slate-300 normally reached for here measures 1.48:1 on white. This is
+     visibly darker than a typical Tailwind form and that is the point: every
+     border below belongs to an input, select, textarea, checkbox, secondary
+     button or step marker, never to a decorative rule. */
+  --color-line: #e2e8f0;
+  --color-line-strong: #78879a;
+
+  /* Text. Every value here clears 4.5:1 against all three surfaces above,
+     canvas included -- checked, not assumed. ink-subtle replaces the
+     slate-400 (2.6:1 on white) this UI used for every piece of metadata.
+
+     ink-subtle is #596a7d rather than slate-500: on the canvas, slate-500
+     measures 4.23:1 and fails. */
+  --color-ink: #020617;
+  --color-ink-muted: #475569;
+  --color-ink-subtle: #596a7d;
+  --color-ink-inverse: #ffffff;
+
+  /* Brand: actions, links, active navigation, focus. */
+  --color-brand: #0369a1;
+  --color-brand-hover: #075985;
+  --color-brand-active: #0c4a6e;
+  --color-brand-soft: #e0f2fe;
+  --color-brand-ink: #0c4a6e;
+
+  /* Status. Each one is always paired with an icon and a word -- colour alone
+     never carries the meaning.
+
+     These sit a shade below the usual 700-level choices (green-700 #15803d,
+     amber-700 #b45309, red-600 #dc2626) because each of those lands between
+     4.29:1 and 4.46:1 on the canvas, under the 4.5:1 floor. */
+  --color-ok: #146c34; /* within limit, verified, complete */
+  --color-ok-soft: #dcfce7;
+  --color-ok-ink: #14532d;
+
+  --color-warn: #a4490a; /* provisional, unverified, in progress */
+  --color-warn-soft: #fef3c7;
+  --color-warn-ink: #78350f;
+
+  --color-risk: #cc2222; /* outside limit, failed, error */
+  --color-risk-soft: #fee2e2;
+  --color-risk-ink: #7f1d1d;
+
+  --color-neutral: #475569; /* not collected, not compared, draft */
+  --color-neutral-soft: #e8ecf1;
+  --color-neutral-ink: #1e293b;
+
+  /* Dense dashboard scale. Tailwind's own spacing utilities cover the rest;
+     these name the three gaps that repeat across the shell. */
+  --spacing-gutter: 1.5rem;
+  --spacing-sidebar: 15rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+--------------------------------------------------------------------------- */
+:root {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-canvas);
+
+  /* Atkinson Hyperlegible has no 500 or 600 face. Without this the browser
+     smears a fake one; with it, 600 resolves to the real 700. */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -20,13 +110,16 @@ body,
 #root {
   margin: 0;
   width: 100%;
-  min-width: 1280px;
   min-height: 100%;
 }
 
+/* There was a min-width: 1280px here. It did not make the layout work on a
+   small screen, it only guaranteed a horizontal scrollbar on one. The shell is
+   responsive instead: the sidebar goes off-canvas below lg. */
 body {
   min-height: 100vh;
-  background: #f7f8f6;
+  background: var(--color-canvas);
+  overflow-x: hidden;
 }
 
 button,
@@ -34,4 +127,54 @@ input,
 textarea,
 select {
   font: inherit;
+  color: inherit;
+}
+
+button:not(:disabled),
+[role="button"]:not(:disabled),
+summary {
+  cursor: pointer;
+}
+
+/* One visible focus ring for everything reachable by keyboard. Removing the
+   ring is never the fix for it looking untidy. */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-ink);
+}
+
+/* Numbers in a column have to line up to be comparable at a glance. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* A map tile layer and a Leaflet popup sit outside Tailwind's reach. */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--color-surface-sunken);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* A spinner is the exception: it is the only signal that a 240 second
+     baseline fetch is still running, so it keeps turning, just slower. */
+  .animate-spin {
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
+  }
 }

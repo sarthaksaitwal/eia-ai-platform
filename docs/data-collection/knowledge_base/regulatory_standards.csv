@@ -1,0 +1,35 @@
+module,standard/source,condition,min_value,max_value,unit,status,notes,source_reference
+AIR,CPCB National AQI,Good,0,50,AQI,VERIFIED,"AQI category/index, not an emission limit.",CPCB National Air Quality Index
+AIR,CPCB National AQI,Satisfactory,51,100,AQI,VERIFIED,"AQI category/index, not an emission limit.",CPCB National Air Quality Index
+AIR,CPCB National AQI,Moderately Polluted,101,200,AQI,VERIFIED,"AQI category/index, not an emission limit.",CPCB National Air Quality Index
+AIR,CPCB National AQI,Poor,201,300,AQI,VERIFIED,"AQI category/index, not an emission limit.",CPCB National Air Quality Index
+AIR,CPCB National AQI,Very Poor,301,400,AQI,VERIFIED,"AQI category/index, not an emission limit.",CPCB National Air Quality Index
+AIR,CPCB National AQI,Severe,401,500,AQI,VERIFIED,"AQI category/index, not an emission limit.",CPCB National Air Quality Index
+WATER,CGWB assessment category,Safe,,,category,VERIFIED,Official assessment-unit category; score mapping is project methodology.,CGWB Dynamic Ground Water Resources Assessment 2025
+WATER,CGWB assessment category,Semi-critical,,,category,VERIFIED,Official assessment-unit category; score mapping is project methodology.,CGWB Dynamic Ground Water Resources Assessment 2025
+WATER,CGWB assessment category,Critical,,,category,VERIFIED,Official assessment-unit category; score mapping is project methodology.,CGWB Dynamic Ground Water Resources Assessment 2025
+WATER,CGWB assessment category,Over-exploited,,,category,VERIFIED,Official assessment-unit category; score mapping is project methodology.,CGWB Dynamic Ground Water Resources Assessment 2025
+WATER,CGWB assessment category,Saline,,,category,VERIFIED,Dedicated quality/suitability review; not scored by the v3 groundwater stress score.,CGWB Dynamic Ground Water Resources Assessment 2025
+WATER,CGWA groundwater regulation,Impact assessment/modeling trigger in OE/Critical/Semi-critical,100,,m3/day,VERIFIED,Withdrawal in excess of 100 m3/day in OE/Critical/Semi-critical areas triggers mandatory impact assessment/modeling requirements under the cited guideline.,CGWA Consolidated Guidelines
+WATER,CGWA groundwater regulation,Impact assessment/modeling trigger in Safe non-alluvium,500,,m3/day,VERIFIED,Withdrawal in excess of 500 m3/day in safe areas underlain by non-alluvium triggers the cited requirement.,CGWA Consolidated Guidelines
+WATER,CGWA groundwater regulation,Impact assessment/modeling trigger in Safe alluvium,2000,,m3/day,VERIFIED,Withdrawal in excess of 2000 m3/day in safe areas underlain by alluvium triggers the cited requirement.,CGWA Consolidated Guidelines
+ECOLOGY,ESZ legal boundary,Inside notified ESZ,,,GIS condition,VERIFIED,Actual notification geometry and notification-specific conditions control; no universal 10 km rule.,MoEFCC ESZ notifications
+ECOLOGY,Protected area legal boundary,Inside notified protected area,,,GIS condition,VERIFIED,Legal/spatial review required; exact restriction depends on applicable law/notification.,MoEFCC / notified PA records
+NOISE,"Noise Pollution (Regulation and Control) Rules, 2000",Industrial Day,,75,dB(A) Leq,VERIFIED,06:00–22:00,CPCB/MoEFCC
+NOISE,"Noise Pollution (Regulation and Control) Rules, 2000",Industrial Night,,70,dB(A) Leq,VERIFIED,22:00–06:00,CPCB/MoEFCC
+NOISE,"Noise Pollution (Regulation and Control) Rules, 2000",Commercial Day,,65,dB(A) Leq,VERIFIED,06:00–22:00,CPCB/MoEFCC
+NOISE,"Noise Pollution (Regulation and Control) Rules, 2000",Commercial Night,,55,dB(A) Leq,VERIFIED,22:00–06:00,CPCB/MoEFCC
+NOISE,"Noise Pollution (Regulation and Control) Rules, 2000",Residential Day,,55,dB(A) Leq,VERIFIED,06:00–22:00,CPCB/MoEFCC
+NOISE,"Noise Pollution (Regulation and Control) Rules, 2000",Residential Night,,45,dB(A) Leq,VERIFIED,22:00–06:00,CPCB/MoEFCC
+NOISE,"Noise Pollution (Regulation and Control) Rules, 2000",Silence Zone Day,,50,dB(A) Leq,VERIFIED,06:00–22:00; use actual applicable designation,CPCB/MoEFCC
+NOISE,"Noise Pollution (Regulation and Control) Rules, 2000",Silence Zone Night,,40,dB(A) Leq,VERIFIED,22:00–06:00; use actual applicable designation,CPCB/MoEFCC
+WASTE,"Environment (C&D) Waste Management Rules, 2025",Rules effective,,,date,VERIFIED,Effective 1 April 2026.,MoEFCC/CPCB Gazette
+WASTE,"Environment (C&D) Waste Management Rules, 2025",Reconstruction EPR target 2025-26,25,,% of prior-year waste,VERIFIED,Recyclable waste as assessed under the rules.,First Schedule
+WASTE,"Environment (C&D) Waste Management Rules, 2025",Reconstruction EPR target 2026-27,50,,% of prior-year waste,VERIFIED,Recyclable waste as assessed under the rules.,First Schedule
+WASTE,"Environment (C&D) Waste Management Rules, 2025",Reconstruction EPR target 2027-28,75,,% of prior-year waste,VERIFIED,Recyclable waste as assessed under the rules.,First Schedule
+WASTE,"Environment (C&D) Waste Management Rules, 2025",Reconstruction/Demolition EPR target 2028-29 onward,100,,% of prior-year waste,VERIFIED,Recyclable waste as assessed under the rules.,First Schedule
+WASTE,"Environment (C&D) Waste Management Rules, 2025",Construction/reconstruction utilisation 2026-27,5,,% of total construction material,VERIFIED,Target determined per year of approval of waste utilisation plan.,Second Schedule
+WASTE,"Environment (C&D) Waste Management Rules, 2025",Construction/reconstruction utilisation 2027-28,10,,% of total construction material,VERIFIED,Target determined per year of approval of waste utilisation plan.,Second Schedule
+WASTE,"Environment (C&D) Waste Management Rules, 2025",Construction/reconstruction utilisation 2028-29,15,,% of total construction material,VERIFIED,Target determined per year of approval of waste utilisation plan.,Second Schedule
+WASTE,"Environment (C&D) Waste Management Rules, 2025",Construction/reconstruction utilisation 2029-30,20,,% of total construction material,VERIFIED,Target determined per year of approval of waste utilisation plan.,Second Schedule
+WASTE,"Environment (C&D) Waste Management Rules, 2025",Construction/reconstruction utilisation 2030-31 onward,25,,% of total construction material,VERIFIED,Target determined per year of approval of waste utilisation plan.,Second Schedule
