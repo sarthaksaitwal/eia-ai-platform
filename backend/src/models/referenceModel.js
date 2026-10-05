@@ -5,8 +5,9 @@ async function listCoefficients({ industry, factor } = {}) {
   const values = [];
 
   if (industry) {
+    // Coefficients stored as 'All' (fuels, grid electricity) apply to every industry.
     values.push(industry);
-    conditions.push(`industry = $${values.length}`);
+    conditions.push(`(industry = $${values.length} OR industry = 'All')`);
   }
   if (factor) {
     values.push(factor);

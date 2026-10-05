@@ -1,0 +1,94 @@
+module,rule_type,condition_or_formula,value_1,value_2,unit/status,classification,source_or_note
+GLOBAL,Score direction,,,100 = best environmental performance; 0 = worst,METHODOLOGY,v3.0,
+GLOBAL,Risk band,Low Risk,70,100,METHODOLOGY,v3.0,
+GLOBAL,Risk band,Moderate Risk,40,69,METHODOLOGY,v3.0,
+GLOBAL,Risk band,High Risk,0,39,METHODOLOGY,v3.0,
+GLOBAL,Data availability,AVAILABLE,,,METHODOLOGY,Required input retrieved/provided,
+GLOBAL,Data availability,ESTIMATED,,,METHODOLOGY,Documented estimate/reference used,
+GLOBAL,Data availability,MISSING,,,METHODOLOGY,No defensible value available,
+GLOBAL,Data availability,STALE,,,METHODOLOGY,Data exceed accepted freshness window,
+GLOBAL,Confidence,High,,,METHODOLOGY,Official/current or direct design data with applicable benchmark,
+GLOBAL,Confidence,Medium,,,METHODOLOGY,Credible proxy/reference/screening approximation,
+GLOBAL,Confidence,Low,,,METHODOLOGY,"Incomplete, stale, proxy-heavy or benchmark-limited",
+AIR,Baseline air score,"MAX(0, 100 - AQI/5)",,,METHODOLOGY,v3.0 §4.3,
+AIR,Construction TSP,2.69 × active_area_ha × duration_months × dust_control_factor,2.69,,Mg TSP/ha/month,PROXY,US EPA AP-42 §13.2.3
+AIR,Dust control factor,Strong documented controls,0.5,,dimensionless,METHODOLOGY,Project screening policy
+AIR,Dust control factor,Basic documented controls,0.75,,dimensionless,METHODOLOGY,Project screening policy
+AIR,Dust control factor,No documented controls,1,,dimensionless,METHODOLOGY,No mitigation credit
+AIR,Dust burden score,≤5 Mg,100,,score,METHODOLOGY,"Screening band, not legal limit"
+AIR,Dust burden score,>5–25 Mg,80,,score,METHODOLOGY,Screening band
+AIR,Dust burden score,>25–100 Mg,60,,score,METHODOLOGY,Screening band
+AIR,Dust burden score,>100–250 Mg,40,,score,METHODOLOGY,Screening band
+AIR,Dust burden score,>250 Mg,20,,score,METHODOLOGY,Screening band
+AIR,Final score,0.70 × Baseline_Air_Score + 0.30 × Dust_Burden_Score,,,score,METHODOLOGY,v3.0 §4.5
+AIR,Sensitivity flag,AQI > 200,200,,AQI,METHODOLOGY,HIGH_SENSITIVITY/review messaging; not project-caused AQI prediction
+WATER,Groundwater stress score,Safe,100,,score,METHODOLOGY,Official category from CGWB
+WATER,Groundwater stress score,Semi-critical,75,,score,METHODOLOGY,Official category from CGWB
+WATER,Groundwater stress score,Critical,45,,score,METHODOLOGY,Official category from CGWB
+WATER,Groundwater stress score,Over-exploited,15,,score,METHODOLOGY,Official category from CGWB
+WATER,Groundwater pressure,≤0.5%,100,,score,METHODOLOGY,Annual withdrawal / annual extractable resource
+WATER,Groundwater pressure,>0.5–1%,80,,score,METHODOLOGY,Annual withdrawal / annual extractable resource
+WATER,Groundwater pressure,>1–2%,60,,score,METHODOLOGY,Annual withdrawal / annual extractable resource
+WATER,Groundwater pressure,>2–5%,40,,score,METHODOLOGY,Annual withdrawal / annual extractable resource
+WATER,Groundwater pressure,>5%,20,,score,METHODOLOGY,Annual withdrawal / annual extractable resource
+WATER,Final score,0.60 × Groundwater_Stress + 0.40 × GW_Pressure,,,score,METHODOLOGY,Only when required inputs are available
+WATER,Domestic planning reference,135,,L/person/day,REFERENCE,Applicable domestic/urban planning component only; not industrial process water,
+ECOLOGY,Legal sensitivity,Inside notified Protected Area,0,,score/status,METHODOLOGY,REVIEW_REQUIRED / legal restriction review
+ECOLOGY,Legal sensitivity,Outside notified Protected Area,100,,score,METHODOLOGY,Spatial screening result
+ECOLOGY,Natural/green disturbance,≤5%,100,,score,METHODOLOGY,Project screening band
+ECOLOGY,Natural/green disturbance,>5–15%,80,,score,METHODOLOGY,Project screening band
+ECOLOGY,Natural/green disturbance,>15–30%,60,,score,METHODOLOGY,Project screening band
+ECOLOGY,Natural/green disturbance,>30–50%,40,,score,METHODOLOGY,Project screening band
+ECOLOGY,Natural/green disturbance,>50%,20,,score,METHODOLOGY,Project screening band
+ECOLOGY,Water proximity,<100 m,20,,score,METHODOLOGY,Sensitive mapped water feature
+ECOLOGY,Water proximity,100–500 m,40,,score,METHODOLOGY,Sensitive mapped water feature
+ECOLOGY,Water proximity,500 m–1 km,70,,score,METHODOLOGY,Sensitive mapped water feature
+ECOLOGY,Water proximity,>1 km / none within 1 km,100,,score,METHODOLOGY,Sensitive mapped water feature
+ECOLOGY,Final score,0.50 × Legal + 0.30 × Land + 0.20 × Water,,,score,METHODOLOGY,v3.0 §6.6
+CARBON,Core equation,Σ(Activity_i × Emission_Factor_i),,,normalized emissions,METHODOLOGY,Activity must first be normalized to factor basis
+CARBON,Carbon intensity,Project_Carbon_Profile / Output_or_BuiltUpArea,,,kgCO2e/output unit,METHODOLOGY,Benchmark only when credible sector benchmark exists
+CARBON,Intensity score,≤50% of sector benchmark,100,,score,METHODOLOGY,Only with credible sector benchmark
+CARBON,Intensity score,>50–75%,85,,score,METHODOLOGY,Only with credible sector benchmark
+CARBON,Intensity score,>75–100%,70,,score,METHODOLOGY,Only with credible sector benchmark
+CARBON,Intensity score,>100–125%,55,,score,METHODOLOGY,Only with credible sector benchmark
+CARBON,Intensity score,>125–150%,40,,score,METHODOLOGY,Only with credible sector benchmark
+CARBON,Intensity score,>150%,20,,score,METHODOLOGY,Only with credible sector benchmark
+CARBON,No benchmark,Return carbon intensity + Low Confidence / Insufficient Benchmark Data,,,status,METHODOLOGY,Do not invent a benchmark
+RESOURCE,Water reuse ratio,100 × reused/recycled water / total water demand,,,%,METHODOLOGY,Benchmark-independent ratio
+RESOURCE,Water reuse score,≥50%,100,,score,METHODOLOGY,v3.0
+RESOURCE,Water reuse score,30–49%,80,,score,METHODOLOGY,v3.0
+RESOURCE,Water reuse score,15–29%,60,,score,METHODOLOGY,v3.0
+RESOURCE,Water reuse score,5–14%,40,,score,METHODOLOGY,v3.0
+RESOURCE,Water reuse score,<5%,20,,score,METHODOLOGY,v3.0
+RESOURCE,Energy intensity,Annual_Energy_Use / Annual_Output,,,energy/output,METHODOLOGY,Use applicable sector/building benchmark
+RESOURCE,Energy intensity score,≤50% of benchmark,100,,score,METHODOLOGY,Sector/building benchmark required
+RESOURCE,Energy intensity score,>50–75%,85,,score,METHODOLOGY,Sector/building benchmark required
+RESOURCE,Energy intensity score,>75–100%,70,,score,METHODOLOGY,Sector/building benchmark required
+RESOURCE,Energy intensity score,>100–125%,55,,score,METHODOLOGY,Sector/building benchmark required
+RESOURCE,Energy intensity score,>125–150%,40,,score,METHODOLOGY,Sector/building benchmark required
+RESOURCE,Energy intensity score,>150%,20,,score,METHODOLOGY,Sector/building benchmark required
+RESOURCE,Final score,Arithmetic mean of valid benchmarked sub-scores only,,,score,METHODOLOGY,No missing benchmark replaced with zero
+WASTE,Management score,Segregation + authorized route + ≥75% recovery,100,,score,METHODOLOGY,Project screening score
+WASTE,Management score,50–74% recovery with documented management,80,,score,METHODOLOGY,Project screening score
+WASTE,Management score,25–49% recovery,60,,score,METHODOLOGY,Project screening score
+WASTE,Management score,Partial segregation / limited recovery,40,,score,METHODOLOGY,Project screening score
+WASTE,Management score,No effective segregation/recovery,20,,score,METHODOLOGY,Project screening score
+WASTE,Quantity score,Sector/project benchmark only,,,score,METHODOLOGY,"If no benchmark, display quantity and mark comparison insufficient data"
+NOISE,Distance attenuation,L_receptor = L_source - 20 log10(D / 15.24),15.24,,m,METHODOLOGY,Point-source screening approximation
+NOISE,Source combination,L_total = 10 log10(Σ10^(L_i/10)),,,dB(A),METHODOLOGY,Logarithmic combination
+NOISE,Noise score,Exceedance ≤0 dB,100,,score,METHODOLOGY,CPCB limit is regulatory; scoring is project-defined
+NOISE,Noise score,>0–3 dB,90,,score,METHODOLOGY,Project-defined
+NOISE,Noise score,>3–5 dB,75,,score,METHODOLOGY,Project-defined
+NOISE,Noise score,>5–10 dB,55,,score,METHODOLOGY,Project-defined
+NOISE,Noise score,>10–15 dB,30,,score,METHODOLOGY,Project-defined
+NOISE,Noise score,>15 dB,0,,score,METHODOLOGY,Project-defined
+OVERALL,Weight,Air,20,,%,METHODOLOGY,Sensitivity testing required before calling weights validated
+OVERALL,Weight,Water,15,,%,METHODOLOGY,Sensitivity testing required
+OVERALL,Weight,Ecology,10,,%,METHODOLOGY,Sensitivity testing required
+OVERALL,Weight,Carbon,20,,%,METHODOLOGY,Sensitivity testing required
+OVERALL,Weight,Resource,10,,%,METHODOLOGY,Sensitivity testing required
+OVERALL,Weight,Waste,10,,%,METHODOLOGY,Sensitivity testing required
+OVERALL,Weight,Noise,15,,%,METHODOLOGY,Sensitivity testing required
+OVERALL,Formula,0.20×Air + 0.15×Water + 0.10×Ecology + 0.20×Carbon + 0.10×Resource + 0.10×Waste + 0.15×Noise,,,score,METHODOLOGY,Do not silently re-normalize unless methodology explicitly enables it
+OVERALL,Missing module,No defensible calculation,,,NOT_ASSESSED,Never assign 0 or 100,
+OVERALL,Not applicable module,Genuinely not applicable,,,NOT_APPLICABLE,Document reason,
