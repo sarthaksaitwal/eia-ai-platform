@@ -1,26 +1,42 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { FolderKanban, MapPin, MoreHorizontal, Plus, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  CheckCircle2,
+  CircleDashed,
+  FolderKanban,
+  MapPin,
+  Plus,
+  Search,
+  Timer,
+} from "lucide-react";
+import type { ComponentType, ReactNode } from "react";
 
 import { Empty, ErrorState, Loading } from "../components/ui/States";
+import {
+  Badge,
+  ButtonLink,
+  Card,
+  PageHeader,
+  type Tone,
+} from "../components/ui/Primitives";
+import { inputClass, selectClass } from "../components/ui/fieldStyles";
 import { api } from "../lib/api";
 import { useApi } from "../lib/useApi";
+import { formatCoords, formatCount, formatDate } from "../lib/format";
 import type { Project } from "../lib/types";
 
-// projects.status is free text in the schema, so this only colours the values
-// the backend actually sets and leaves anything else neutral.
-function statusClass(status: string) {
-  switch (status) {
-    case "Completed":
-      return "bg-emerald-50 text-emerald-700";
-    case "In Progress":
-      return "bg-amber-50 text-amber-700";
-    case "Draft":
-      return "bg-slate-100 text-slate-600";
-    default:
-      return "bg-slate-100 text-slate-600";
-  }
-}
+// projects.status is free text in the schema, so this maps only the values the
+// backend actually sets and leaves anything else neutral. Each status carries
+// an icon as well as a colour: the verdict has to survive being read by
+// someone who cannot tell the two hues apart, or printed in grey.
+const STATUS: Record<
+  string,
+  { tone: Tone; icon: ComponentType<{ size?: number; className?: string }> }
+> = {
+  Completed: { tone: "ok", icon: CheckCircle2 },
+  "In Progress": { tone: "brand", icon: Timer },
+  Draft: { tone: "neutral", icon: CircleDashed },
+};
 
 // findProjectsByUser flattens the location columns onto the row rather than
 // nesting them, so the place a project sits has to be assembled here.
@@ -30,22 +46,28 @@ function placeOf(project: Project) {
   );
   if (parts.length) return parts.join(", ");
 
-  if (project.latitude && project.longitude) {
-    return `${Number(project.latitude).toFixed(4)}, ${Number(project.longitude).toFixed(4)}`;
-  }
-  return "No location set";
+  return formatCoords(project.latitude, project.longitude) ?? "No location set";
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+const COLUMNS = "lg:grid-cols-[2.2fr_1fr_1.3fr_1.5fr_0.9fr_1fr]";
+
+/**
+ * One cell. Below lg the table has no header row to refer back to, so each
+ * cell carries its own label and the row reads as a small record instead of a
+ * line of unexplained values.
+ */
+function Cell({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 items-baseline justify-between gap-3 lg:block">
+      <span className="shrink-0 text-xs text-ink-subtle lg:hidden">{label}</span>
+      <span className="min-w-0 truncate text-right text-sm text-ink-muted lg:text-left">
+        {children}
+      </span>
+    </div>
+  );
 }
 
 export default function Projects() {
-  const navigate = useNavigate();
   const { data, loading, error, reload } = useApi(() => api.listProjects(), []);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
@@ -73,25 +95,16 @@ export default function Projects() {
 
   return (
     <div>
-      <div className="mb-7 flex items-end justify-between">
-        <div>
-          <p className="mb-1 text-sm font-medium text-emerald-700">Projects</p>
-
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">All Projects</h1>
-
-          <p className="mt-1 text-sm text-slate-500">
-            View and manage your environmental assessment projects.
-          </p>
-        </div>
-
-        <Link
-          to="/projects/new"
-          className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-800"
-        >
-          <Plus size={16} />
-          Create Project
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Projects"
+        title="All projects"
+        hint="Every project you have created, newest filters applied live."
+        action={
+          <ButtonLink to="/projects/new" icon={Plus}>
+            Create project
+          </ButtonLink>
+        }
+      />
 
       {loading && <Loading label="Loading your projects..." />}
 
@@ -102,120 +115,138 @@ export default function Projects() {
           title="No projects yet"
           hint="Create a project to record its site and start an environmental assessment."
           action={
-            <Link
-              to="/projects/new"
-              className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-800"
-            >
-              <Plus size={16} />
+            <ButtonLink to="/projects/new" icon={Plus}>
               Create your first project
-            </Link>
+            </ButtonLink>
           }
         />
       )}
 
       {!loading && !error && projects.length > 0 && (
         <>
-          <div className="mb-5 flex items-center justify-between border border-slate-200 bg-white px-5 py-4">
-            <div className="relative w-80">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
+          <Card className="mb-4">
+            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full sm:max-w-sm">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
+                  aria-hidden="true"
+                />
 
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search projects..."
-                className="h-9 w-full rounded-md border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-emerald-600 focus:bg-white"
-              />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search name, industry or place"
+                  aria-label="Search projects"
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
+
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                aria-label="Filter by status"
+                className={`${selectClass} sm:w-48`}
+              >
+                {statuses.map((option) => (
+                  <option key={option} value={option}>
+                    {option === "All" ? "All statuses" : option}
+                  </option>
+                ))}
+              </select>
             </div>
+          </Card>
 
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none focus:border-emerald-600"
+          <Card>
+            <div
+              className={`hidden border-b border-line bg-surface-sunken px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle lg:grid ${COLUMNS} lg:items-center lg:gap-3`}
             >
-              {statuses.map((option) => (
-                <option key={option} value={option}>
-                  {option === "All" ? "All statuses" : option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="border border-slate-200 bg-white">
-            <div className="grid grid-cols-[2fr_1fr_1.4fr_1.5fr_1fr_1.1fr_40px] items-center border-b border-slate-200 bg-slate-50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               <span>Project</span>
               <span>Type</span>
               <span>Industry</span>
               <span>Location</span>
               <span>Created</span>
               <span>Status</span>
-              <span />
             </div>
 
-            {visible.map((project) => (
-              <div
-                key={project.id}
-                onClick={() => navigate(`/projects/${project.id}/location`)}
-                className="grid cursor-pointer grid-cols-[2fr_1fr_1.4fr_1.5fr_1fr_1.1fr_40px] items-center border-b border-slate-100 px-5 py-4 last:border-b-0 hover:bg-slate-50/60"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-slate-100 text-slate-600">
-                    <FolderKanban size={17} />
-                  </div>
+            <ul>
+              {visible.map((project) => {
+                const skin = STATUS[project.status] ?? { tone: "neutral" as Tone, icon: undefined };
 
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">{project.name}</p>
-                    <p className="mt-0.5 truncate text-xs text-slate-400">
-                      {project.description || "Environmental assessment"}
-                    </p>
-                  </div>
-                </div>
+                return (
+                  <li key={project.id} className="border-b border-line last:border-b-0">
+                    {/* A link rather than a div with onClick: the row is then
+                        reachable by keyboard, openable in a new tab, and
+                        readable as a destination by a screen reader. */}
+                    <Link
+                      to={`/projects/${project.id}/location`}
+                      className={`flex flex-col gap-2 p-4 transition-colors duration-200 hover:bg-surface-sunken lg:grid ${COLUMNS} lg:items-center lg:gap-3 lg:px-5 lg:py-3.5`}
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-neutral-soft text-ink-muted">
+                          <FolderKanban size={17} aria-hidden="true" />
+                        </span>
 
-                <span className="text-sm text-slate-600">{project.project_type || "—"}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-ink">
+                            {project.name}
+                          </span>
+                          <span className="mt-0.5 block truncate text-xs text-ink-subtle">
+                            {project.description || "Environmental assessment"}
+                          </span>
+                        </span>
+                      </div>
 
-                <span className="truncate text-sm text-slate-600">{project.industry}</span>
+                      <Cell label="Type">{project.project_type || "—"}</Cell>
 
-                <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                  <MapPin size={14} className="shrink-0 text-slate-400" />
-                  <span className="truncate">{placeOf(project)}</span>
-                </div>
+                      <Cell label="Industry">{project.industry}</Cell>
 
-                <span className="text-sm text-slate-500">{formatDate(project.created_at)}</span>
+                      <div className="flex min-w-0 items-baseline justify-between gap-3 lg:block">
+                        <span className="shrink-0 text-xs text-ink-subtle lg:hidden">
+                          Location
+                        </span>
 
-                <span
-                  className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[11px] font-medium ${statusClass(
-                    project.status
-                  )}`}
-                >
-                  {project.status}
-                </span>
+                        <span className="flex min-w-0 items-center gap-1.5 text-sm text-ink-muted">
+                          <MapPin
+                            size={14}
+                            className="hidden shrink-0 text-ink-subtle lg:block"
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">{placeOf(project)}</span>
+                        </span>
+                      </div>
 
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label="Project actions"
-                  className="text-slate-400 hover:text-slate-700"
-                >
-                  <MoreHorizontal size={18} />
-                </button>
-              </div>
-            ))}
+                      <Cell label="Created">
+                        <span className="tabular">{formatDate(project.created_at)}</span>
+                      </Cell>
+
+                      <div className="flex items-center justify-between gap-3 lg:block">
+                        <span className="shrink-0 text-xs text-ink-subtle lg:hidden">Status</span>
+                        <Badge tone={skin.tone} icon={skin.icon}>
+                          {project.status}
+                        </Badge>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
 
             {visible.length === 0 && (
-              <div className="px-5 py-10 text-center text-sm text-slate-500">
-                No project matches that search.
+              <div className="px-5 py-10 text-center">
+                <p className="text-sm font-semibold text-ink">No project matches that filter</p>
+                <p className="mt-1 text-sm text-ink-muted">
+                  Try a different search term, or set the status back to all.
+                </p>
               </div>
             )}
 
-            <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
-              <span className="text-xs text-slate-500">
-                Showing {visible.length} of {projects.length}{" "}
-                {projects.length === 1 ? "project" : "projects"}
-              </span>
+            <div className="tabular border-t border-line bg-surface-sunken px-5 py-2.5 text-xs text-ink-subtle">
+              Showing {formatCount(visible.length)} of {formatCount(projects.length)}{" "}
+              {projects.length === 1 ? "project" : "projects"}
             </div>
-          </div>
+          </Card>
         </>
       )}
     </div>

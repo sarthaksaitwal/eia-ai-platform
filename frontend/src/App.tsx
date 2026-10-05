@@ -20,8 +20,8 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7f8f6]">
-        <Loader2 size={20} className="animate-spin text-emerald-700" />
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <Loader2 size={20} className="animate-spin text-brand" />
       </div>
     );
   }

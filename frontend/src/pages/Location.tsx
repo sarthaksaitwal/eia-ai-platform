@@ -32,9 +32,9 @@ const siteIcon = L.divIcon({
 });
 
 function providerIcon(status: ProviderOutcome["status"]) {
-  if (status === "available") return <CheckCircle2 size={15} className="text-emerald-600" />;
+  if (status === "available") return <CheckCircle2 size={15} className="text-brand" />;
   if (status === "unavailable") return <AlertTriangle size={15} className="text-amber-600" />;
-  return <XCircle size={15} className="text-red-600" />;
+  return <XCircle size={15} className="text-risk" />;
 }
 
 // NUMERIC columns arrive as strings; a value may also be text ("semi_critical")
@@ -151,27 +151,31 @@ export default function Location() {
 
   return (
     <div className="max-w-6xl">
-      <div className="mb-7">
-        <p className="mb-1 text-sm font-medium text-emerald-700">Assessment Setup</p>
+      <div className="mb-6">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand">
+          Assessment setup
+        </p>
 
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Location &amp; GIS</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
+          Location and GIS
+        </h1>
 
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-ink-muted">
           {row.name} — review the site and collect the environmental baseline for it.
         </p>
       </div>
 
       {/* Site */}
-      <section className="mb-6 border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-6 py-5">
+      <section className="mb-5 rounded-lg border border-line bg-surface">
+        <div className="border-b border-line px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center bg-emerald-50 text-emerald-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-soft text-brand-ink">
               <MapPin size={18} />
             </div>
 
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Project Site</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <h2 className="text-sm font-semibold text-ink">Project site</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">
                 Saved when the project was created.
               </p>
             </div>
@@ -185,8 +189,8 @@ export default function Location() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-6 p-6">
-            <div className="col-span-2 overflow-hidden rounded-md border border-slate-200">
+          <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="overflow-hidden rounded-md border border-line sm:col-span-2">
               <MapContainer
                 center={[lat, lon]}
                 zoom={12}
@@ -203,18 +207,18 @@ export default function Location() {
 
             <dl className="space-y-3.5 text-sm">
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Latitude</dt>
-                <dd className="mt-0.5 text-slate-800">{lat.toFixed(6)}</dd>
+                <dt className="text-xs uppercase tracking-wide text-ink-subtle">Latitude</dt>
+                <dd className="mt-0.5 text-ink">{lat.toFixed(6)}</dd>
               </div>
 
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Longitude</dt>
-                <dd className="mt-0.5 text-slate-800">{lon.toFixed(6)}</dd>
+                <dt className="text-xs uppercase tracking-wide text-ink-subtle">Longitude</dt>
+                <dd className="mt-0.5 text-ink">{lon.toFixed(6)}</dd>
               </div>
 
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Place</dt>
-                <dd className="mt-0.5 text-slate-800">
+                <dt className="text-xs uppercase tracking-wide text-ink-subtle">Place</dt>
+                <dd className="mt-0.5 text-ink">
                   {[location?.city, location?.district, location?.state]
                     .filter(Boolean)
                     .join(", ") || "—"}
@@ -222,26 +226,26 @@ export default function Location() {
               </div>
 
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">
+                <dt className="text-xs uppercase tracking-wide text-ink-subtle">
                   Area classification
                 </dt>
-                <dd className="mt-0.5 text-slate-800">
+                <dd className="mt-0.5 text-ink">
                   {location?.area_classification || "Not set"}
                 </dd>
               </div>
 
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">
+                <dt className="text-xs uppercase tracking-wide text-ink-subtle">
                   Ecologically sensitive
                 </dt>
-                <dd className="mt-0.5 text-slate-800">
+                <dd className="mt-0.5 text-ink">
                   {location?.ecologically_sensitive ? "Yes" : "No"}
                 </dd>
               </div>
 
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Industry</dt>
-                <dd className="mt-0.5 text-slate-800">{row.industry}</dd>
+                <dt className="text-xs uppercase tracking-wide text-ink-subtle">Industry</dt>
+                <dd className="mt-0.5 text-ink">{row.industry}</dd>
               </div>
             </dl>
           </div>
@@ -249,30 +253,30 @@ export default function Location() {
       </section>
 
       {/* Assessment */}
-      <section className="mb-6 border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+      <section className="mb-5 rounded-lg border border-line bg-surface">
+        <div className="flex items-center justify-between border-b border-line px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center bg-emerald-50 text-emerald-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-soft text-brand-ink">
               <ClipboardCheck size={18} />
             </div>
 
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Assessment</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <h2 className="text-sm font-semibold text-ink">Assessment</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">
                 Baseline data and inputs belong to an assessment, not to the project.
               </p>
             </div>
           </div>
 
           {assessment && (
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+            <span className="rounded-full bg-neutral-soft px-2.5 py-1 text-[11px] font-semibold text-ink-muted">
               {assessment.status}
             </span>
           )}
         </div>
 
         <div className="p-6">
-          {assessments.loading && <p className="text-sm text-slate-500">Loading assessments...</p>}
+          {assessments.loading && <p className="text-sm text-ink-muted">Loading assessments...</p>}
 
           {assessments.error && (
             <ErrorState message={assessments.error} onRetry={assessments.reload} />
@@ -280,14 +284,14 @@ export default function Location() {
 
           {!assessments.loading && !assessments.error && !assessment && (
             <div className="flex items-center justify-between gap-4">
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-ink-muted">
                 No assessment started for this project yet.
               </p>
 
               <button
                 onClick={createAssessment}
                 disabled={creatingAssessment}
-                className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:opacity-60"
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-semibold text-ink-inverse transition-colors duration-200 hover:bg-brand-hover active:bg-brand-active disabled:pointer-events-none disabled:opacity-55"
               >
                 {creatingAssessment && <Loader2 size={15} className="animate-spin" />}
                 Start assessment
@@ -296,22 +300,22 @@ export default function Location() {
           )}
 
           {assessment && (
-            <dl className="grid grid-cols-3 gap-6 text-sm">
+            <dl className="grid grid-cols-1 gap-5 text-sm sm:grid-cols-2 xl:grid-cols-3">
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Assessment</dt>
-                <dd className="mt-0.5 text-slate-800">#{assessment.assessment_number}</dd>
+                <dt className="text-xs uppercase tracking-wide text-ink-subtle">Assessment</dt>
+                <dd className="mt-0.5 text-ink">#{assessment.assessment_number}</dd>
               </div>
 
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Started</dt>
-                <dd className="mt-0.5 text-slate-800">
+                <dt className="text-xs uppercase tracking-wide text-ink-subtle">Started</dt>
+                <dd className="mt-0.5 text-ink">
                   {new Date(assessment.created_at).toLocaleString()}
                 </dd>
               </div>
 
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Inputs recorded</dt>
-                <dd className="mt-0.5 text-slate-800">
+                <dt className="text-xs uppercase tracking-wide text-ink-subtle">Inputs recorded</dt>
+                <dd className="mt-0.5 text-ink">
                   {/* Entering inputs is the next screen to build. */}
                   Not entered yet
                 </dd>
@@ -322,16 +326,16 @@ export default function Location() {
       </section>
 
       {/* Environmental baseline */}
-      <section className="mb-6 border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-6 py-5">
+      <section className="mb-5 rounded-lg border border-line bg-surface">
+        <div className="border-b border-line px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center bg-emerald-50 text-emerald-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-soft text-brand-ink">
               <Radar size={18} />
             </div>
 
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Environmental Baseline</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <h2 className="text-sm font-semibold text-ink">Environmental baseline</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">
                 Collected from public providers for this point. Takes one to four minutes.
               </p>
             </div>
@@ -340,14 +344,14 @@ export default function Location() {
 
         <div className="p-6">
           {!assessment ? (
-            <p className="text-sm text-slate-500">Start an assessment first.</p>
+            <p className="text-sm text-ink-muted">Start an assessment first.</p>
           ) : (
             <>
               <div className="mb-5 flex flex-wrap items-end gap-4">
                 <div>
                   <label
                     htmlFor="radius"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
+                    className="mb-1.5 block text-sm font-semibold text-ink"
                   >
                     Search radius
                   </label>
@@ -361,9 +365,9 @@ export default function Location() {
                       value={radiusKm}
                       onChange={(e) => setRadiusKm(e.target.value)}
                       disabled={fetching}
-                      className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 pr-10 text-sm text-slate-800 outline-none focus:border-emerald-600 disabled:bg-slate-50"
+                      className="h-10 w-full rounded-md border border-line-strong bg-surface px-3 pr-10 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:bg-surface-sunken"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-subtle">
                       km
                     </span>
                   </div>
@@ -372,7 +376,7 @@ export default function Location() {
                 <button
                   onClick={runFetch}
                   disabled={fetching || !hasPoint}
-                  className="flex h-10 items-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-semibold text-ink-inverse transition-colors duration-200 hover:bg-brand-hover active:bg-brand-active disabled:pointer-events-none disabled:opacity-55"
                 >
                   {fetching ? (
                     <Loader2 size={15} className="animate-spin" />
@@ -385,14 +389,14 @@ export default function Location() {
                 {fetching && (
                   <button
                     onClick={() => abortRef.current?.abort()}
-                    className="h-10 rounded-md border border-slate-200 px-4 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                    className="inline-flex h-10 shrink-0 items-center justify-center rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold text-ink transition-colors duration-200 hover:bg-surface-hover"
                   >
                     Cancel
                   </button>
                 )}
 
                 {fetching && (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-ink-muted">
                     Querying providers. This runs for one to four minutes — leaving this page
                     does not stop the backend.
                   </p>
@@ -416,8 +420,8 @@ export default function Location() {
               ))}
 
               {providers && (
-                <div className="mb-6 overflow-hidden rounded-md border border-slate-200">
-                  <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <div className="mb-6 overflow-hidden rounded-md border border-line">
+                  <div className="border-b border-line bg-surface-sunken px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
                     Providers ({providers.filter((p) => p.status === "available").length} of{" "}
                     {providers.length} available)
                   </div>
@@ -425,18 +429,18 @@ export default function Location() {
                   {providers.map((outcome, index) => (
                     <div
                       key={`${outcome.source_key}-${index}`}
-                      className="flex items-start gap-3 border-b border-slate-100 px-4 py-2.5 last:border-b-0"
+                      className="flex items-start gap-3 border-b border-line px-4 py-2.5 last:border-b-0"
                     >
                       <span className="mt-0.5">{providerIcon(outcome.status)}</span>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm text-slate-800">{outcome.name}</p>
+                        <p className="text-sm text-ink">{outcome.name}</p>
                         {outcome.reason && (
-                          <p className="mt-0.5 text-xs text-slate-500">{outcome.reason}</p>
+                          <p className="mt-0.5 text-xs text-ink-muted">{outcome.reason}</p>
                         )}
                       </div>
 
-                      <span className="shrink-0 text-xs text-slate-400">
+                      <span className="shrink-0 text-xs text-ink-subtle">
                         {outcome.record_count} record{outcome.record_count === 1 ? "" : "s"}
                       </span>
                     </div>
@@ -444,7 +448,7 @@ export default function Location() {
                 </div>
               )}
 
-              {stored.loading && <p className="text-sm text-slate-500">Loading stored data...</p>}
+              {stored.loading && <p className="text-sm text-ink-muted">Loading stored data...</p>}
 
               {stored.error && <ErrorState message={stored.error} onRetry={stored.reload} />}
 
@@ -457,7 +461,7 @@ export default function Location() {
 
               {observations.length > 0 && (
                 <>
-                  <div className="mb-5 grid grid-cols-3 gap-4">
+                  <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     {[
                       { label: "Observations", value: observations.length, icon: Database },
                       { label: "GIS features", value: gisResults.length, icon: MapPin },
@@ -469,12 +473,12 @@ export default function Location() {
                     ].map((card) => (
                       <div
                         key={card.label}
-                        className="flex items-center gap-3 rounded-md border border-slate-200 px-4 py-3"
+                        className="flex items-center gap-3 rounded-md border border-line px-4 py-3"
                       >
-                        <card.icon size={17} className="text-emerald-700" />
+                        <card.icon size={17} className="text-brand" />
                         <div>
-                          <div className="text-lg font-semibold text-slate-900">{card.value}</div>
-                          <div className="text-xs text-slate-500">{card.label}</div>
+                          <div className="text-lg font-semibold text-ink">{card.value}</div>
+                          <div className="text-xs text-ink-muted">{card.label}</div>
                         </div>
                       </div>
                     ))}
@@ -486,27 +490,27 @@ export default function Location() {
                       .map(([category, rows]) => (
                         <div
                           key={category}
-                          className="overflow-hidden rounded-md border border-slate-200"
+                          className="overflow-hidden rounded-md border border-line"
                         >
-                          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-                            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          <div className="flex items-center justify-between border-b border-line bg-surface-sunken px-4 py-2.5">
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
                               {category}
                             </span>
-                            <span className="text-xs text-slate-400">{rows.length}</span>
+                            <span className="text-xs text-ink-subtle">{rows.length}</span>
                           </div>
 
                           {rows.map((obs) => (
                             <div
                               key={obs.id}
-                              className="grid grid-cols-[1.6fr_1fr_1fr] items-center gap-3 border-b border-slate-100 px-4 py-2.5 last:border-b-0"
+                              className="grid grid-cols-1 gap-0.5 border-b border-line px-4 py-2.5 last:border-b-0 sm:grid-cols-[1.6fr_1fr_1fr] sm:items-center sm:gap-3"
                             >
-                              <span className="truncate text-sm text-slate-700">
+                              <span className="truncate text-sm text-ink">
                                 {obs.metadata?.display_name || obs.parameter_name}
                               </span>
-                              <span className="text-sm font-medium text-slate-900">
+                              <span className="tabular text-sm font-semibold text-ink">
                                 {observationValue(obs)}
                               </span>
-                              <span className="truncate text-xs text-slate-400">
+                              <span className="truncate text-xs text-ink-subtle">
                                 {obs.source_name || "—"}
                               </span>
                             </div>
@@ -524,14 +528,14 @@ export default function Location() {
       <div className="flex items-center justify-between">
         <Link
           to="/projects"
-          className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+          className="flex items-center gap-2 text-sm font-semibold text-ink-muted hover:text-ink"
         >
           <ArrowLeft size={16} />
           Back to projects
         </Link>
 
         {/* Assessment inputs and the calculation engine are the next phases. */}
-        <span className="text-sm text-slate-400">Assessment inputs come next</span>
+        <span className="text-sm text-ink-subtle">Assessment inputs come next</span>
       </div>
     </div>
   );

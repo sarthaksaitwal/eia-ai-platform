@@ -45,10 +45,10 @@ const INDUSTRIES = [
 ];
 
 const fieldClass =
-  "h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-600";
+  "h-10 w-full rounded-md border border-line-strong bg-surface px-3 text-sm text-ink outline-none placeholder:text-ink-subtle focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 const selectClass =
-  "h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600";
+  "h-10 w-full rounded-md border border-line-strong bg-surface px-3 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 // "" rather than 0 so an untouched optional number is sent as null instead of
 // being recorded as a real zero.
@@ -163,70 +163,86 @@ export default function CreateProject() {
 
   return (
     <form onSubmit={onSubmit} className="max-w-5xl">
-      <div className="mb-7">
-        <p className="mb-1 text-sm font-medium text-emerald-700">Projects</p>
+      <div className="mb-6">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand">
+          Projects
+        </p>
 
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Create New Project
+        <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
+          Create a new project
         </h1>
 
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-ink-muted">
           Enter the project details and its site. The site is saved with the project, so the
           environmental baseline can be fetched for that point next.
         </p>
       </div>
 
-      <div className="mb-6 border border-slate-200 bg-white px-6 py-4">
-        <div className="flex items-center">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-700 text-xs font-semibold text-white">
-              1
-            </div>
-            <span className="text-sm font-medium text-slate-900">Project &amp; Site</span>
-          </div>
+      {/* Where this form sits in the whole flow. Only the current step's label
+          shows on a narrow screen -- three labels and two rules in a 375px row
+          squashes every one of them to an ellipsis. */}
+      <ol
+        aria-label="Progress"
+        className="mb-5 flex items-center rounded-lg border border-line bg-surface px-4 py-3.5 sm:px-6"
+      >
+        {[
+          { n: 1, label: "Project and site", current: true },
+          { n: 2, label: "Environmental baseline", current: false },
+          { n: 3, label: "Assessment inputs", current: false },
+        ].map((step, index) => (
+          <li key={step.n} className="flex min-w-0 flex-1 items-center last:flex-none">
+            <span
+              className="flex items-center gap-2"
+              aria-current={step.current ? "step" : undefined}
+            >
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                  step.current
+                    ? "bg-brand text-ink-inverse"
+                    : "border border-line-strong text-ink-subtle"
+                }`}
+              >
+                {step.n}
+              </span>
 
-          <div className="mx-4 h-px flex-1 bg-slate-200" />
+              <span
+                className={`truncate text-sm ${
+                  step.current
+                    ? "font-semibold text-ink"
+                    : "hidden text-ink-subtle sm:inline"
+                }`}
+              >
+                {step.label}
+              </span>
+            </span>
 
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs font-medium text-slate-400">
-              2
-            </div>
-            <span className="text-sm text-slate-400">Environmental Baseline</span>
-          </div>
+            {index < 2 && <span className="mx-3 h-px flex-1 bg-line sm:mx-4" />}
+          </li>
+        ))}
+      </ol>
 
-          <div className="mx-4 h-px flex-1 bg-slate-200" />
-
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs font-medium text-slate-400">
-              3
-            </div>
-            <span className="text-sm text-slate-400">Assessment Inputs</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-6 py-5">
+      <div className="rounded-lg border border-line bg-surface">
+        <div className="border-b border-line px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center bg-emerald-50 text-emerald-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-soft text-brand-ink">
               <Building2 size={18} />
             </div>
 
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">
-                Basic Project Information
+              <h2 className="text-sm font-semibold text-ink">
+                Basic project information
               </h2>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-ink-muted">
                 Provide general information about the proposed project.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-6 gap-y-5 p-6">
-          <div className="col-span-2">
-            <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-slate-700">
-              Project Name<span className="ml-1 text-red-500">*</span>
+        <div className="grid grid-cols-1 gap-x-6 gap-y-5 p-5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label htmlFor="name" className="mb-1.5 block text-sm font-semibold text-ink">
+              Project name<span className="ml-1 text-risk">*</span>
             </label>
             <input
               id="name"
@@ -241,9 +257,9 @@ export default function CreateProject() {
           <div>
             <label
               htmlFor="projectType"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Project Type
+              Project type
             </label>
             <select
               id="projectType"
@@ -263,9 +279,9 @@ export default function CreateProject() {
           <div>
             <label
               htmlFor="industry"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Industry / Sector<span className="ml-1 text-red-500">*</span>
+              Industry / Sector<span className="ml-1 text-risk">*</span>
             </label>
             <select
               id="industry"
@@ -281,7 +297,7 @@ export default function CreateProject() {
                 </option>
               ))}
             </select>
-            <p className="mt-1.5 text-xs text-slate-500">
+            <p className="mt-1.5 text-xs text-ink-muted">
               Coefficients and sector limits are keyed by industry.
             </p>
           </div>
@@ -289,14 +305,14 @@ export default function CreateProject() {
           <div>
             <label
               htmlFor="landArea"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Project Area
+              Project area
             </label>
             <div className="relative">
               <Ruler
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
               />
               <input
                 id="landArea"
@@ -306,9 +322,9 @@ export default function CreateProject() {
                 value={landArea}
                 onChange={(e) => setLandArea(e.target.value)}
                 placeholder="25"
-                className="h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-16 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                className="h-10 w-full rounded-md border border-line-strong bg-surface pl-9 pr-16 text-sm text-ink outline-none placeholder:text-ink-subtle focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-subtle">
                 acres
               </span>
             </div>
@@ -317,14 +333,14 @@ export default function CreateProject() {
           <div>
             <label
               htmlFor="investment"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Estimated Investment
+              Estimated investment
             </label>
             <div className="relative">
               <IndianRupee
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
               />
               <input
                 id="investment"
@@ -334,9 +350,9 @@ export default function CreateProject() {
                 value={investment}
                 onChange={(e) => setInvestment(e.target.value)}
                 placeholder="120"
-                className="h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-16 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                className="h-10 w-full rounded-md border border-line-strong bg-surface pl-9 pr-16 text-sm text-ink outline-none placeholder:text-ink-subtle focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-subtle">
                 Crore
               </span>
             </div>
@@ -345,14 +361,14 @@ export default function CreateProject() {
           <div>
             <label
               htmlFor="employees"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Expected Employees
+              Expected employees
             </label>
             <div className="relative">
               <Users
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
               />
               <input
                 id="employees"
@@ -362,7 +378,7 @@ export default function CreateProject() {
                 value={employees}
                 onChange={(e) => setEmployees(e.target.value)}
                 placeholder="350"
-                className="h-10 w-full rounded-md border border-slate-200 bg-white pl-9 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                className="h-10 w-full rounded-md border border-line-strong bg-surface pl-9 text-sm text-ink outline-none placeholder:text-ink-subtle focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
           </div>
@@ -370,14 +386,14 @@ export default function CreateProject() {
           <div>
             <label
               htmlFor="operatingHours"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Operating Hours
+              Operating hours
             </label>
             <div className="relative">
               <Clock3
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
               />
               <input
                 id="operatingHours"
@@ -388,20 +404,20 @@ export default function CreateProject() {
                 value={operatingHours}
                 onChange={(e) => setOperatingHours(e.target.value)}
                 placeholder="16"
-                className="h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-20 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                className="h-10 w-full rounded-md border border-line-strong bg-surface pl-9 pr-20 text-sm text-ink outline-none placeholder:text-ink-subtle focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-subtle">
                 hours/day
               </span>
             </div>
           </div>
 
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label
               htmlFor="description"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Project Description
+              Project description
             </label>
             <textarea
               id="description"
@@ -409,33 +425,33 @@ export default function CreateProject() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Briefly describe the proposed project..."
-              className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+              className="w-full resize-none rounded-md border border-line-strong bg-surface px-3 py-2.5 text-sm text-ink outline-none placeholder:text-ink-subtle focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
           </div>
         </div>
 
-        <div className="border-y border-slate-200 px-6 py-5">
+        <div className="border-y border-line px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center bg-emerald-50 text-emerald-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-soft text-brand-ink">
               <MapPin size={18} />
             </div>
 
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Site Location</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <h2 className="text-sm font-semibold text-ink">Site location</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">
                 Saved with the project in one step. Every provider is queried by this point.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-6 gap-y-5 p-6">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-5 p-5 sm:grid-cols-2">
           <div>
             <label
               htmlFor="latitude"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Latitude<span className="ml-1 text-red-500">*</span>
+              Latitude<span className="ml-1 text-risk">*</span>
             </label>
             <input
               id="latitude"
@@ -451,9 +467,9 @@ export default function CreateProject() {
           <div>
             <label
               htmlFor="longitude"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Longitude<span className="ml-1 text-red-500">*</span>
+              Longitude<span className="ml-1 text-risk">*</span>
             </label>
             <input
               id="longitude"
@@ -466,12 +482,12 @@ export default function CreateProject() {
             />
           </div>
 
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <button
               type="button"
               onClick={useCurrentLocation}
               disabled={locating}
-              className="flex h-10 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-line-strong bg-surface px-4 text-sm font-semibold text-ink transition-colors duration-200 hover:bg-surface-hover disabled:pointer-events-none disabled:opacity-55"
             >
               {locating ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
               Use current location
@@ -479,7 +495,7 @@ export default function CreateProject() {
           </div>
 
           <div>
-            <label htmlFor="city" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="city" className="mb-1.5 block text-sm font-semibold text-ink">
               City / Town
             </label>
             <input
@@ -494,7 +510,7 @@ export default function CreateProject() {
           <div>
             <label
               htmlFor="district"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
               District
             </label>
@@ -504,13 +520,13 @@ export default function CreateProject() {
               onChange={(e) => setDistrict(e.target.value)}
               className={fieldClass}
             />
-            <p className="mt-1.5 text-xs text-slate-500">
+            <p className="mt-1.5 text-xs text-ink-muted">
               The published baseline is collected for Solapur district.
             </p>
           </div>
 
           <div>
-            <label htmlFor="state" className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label htmlFor="state" className="mb-1.5 block text-sm font-semibold text-ink">
               State
             </label>
             <input
@@ -524,9 +540,9 @@ export default function CreateProject() {
           <div>
             <label
               htmlFor="areaClassification"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Area Classification<span className="ml-1 text-red-500">*</span>
+              Area classification<span className="ml-1 text-risk">*</span>
             </label>
             <select
               id="areaClassification"
@@ -540,22 +556,22 @@ export default function CreateProject() {
                 </option>
               ))}
             </select>
-            <p className="mt-1.5 text-xs text-slate-500">
+            <p className="mt-1.5 text-xs text-ink-muted">
               Ambient noise limits depend on this, so it is declared rather than guessed.
             </p>
           </div>
 
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className="flex items-start gap-2.5">
               <input
                 type="checkbox"
                 checked={ecologicallySensitive}
                 onChange={(e) => setEcologicallySensitive(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
+                className="mt-0.5 h-4 w-4 rounded border-line-strong text-brand focus:ring-brand"
               />
-              <span className="text-sm text-slate-700">
+              <span className="text-sm text-ink">
                 The site is in an ecologically sensitive area
-                <span className="mt-0.5 block text-xs text-slate-500">
+                <span className="mt-0.5 block text-xs text-ink-muted">
                   Air quality is compared against the stricter ecologically sensitive limits
                   where the notification sets them.
                 </span>
@@ -570,11 +586,11 @@ export default function CreateProject() {
           </div>
         )}
 
-        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
+        <div className="flex items-center justify-between border-t border-line bg-surface-sunken px-6 py-4">
           <button
             type="button"
             onClick={() => navigate("/projects")}
-            className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+            className="flex items-center gap-2 text-sm font-semibold text-ink-muted hover:text-ink"
           >
             <ArrowLeft size={16} />
             Cancel
@@ -583,7 +599,7 @@ export default function CreateProject() {
           <button
             type="submit"
             disabled={busy}
-            className="flex items-center gap-2 rounded-md bg-emerald-700 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-brand px-5 text-sm font-semibold text-ink-inverse transition-colors duration-200 hover:bg-brand-hover active:bg-brand-active disabled:pointer-events-none disabled:opacity-55"
           >
             {busy && <Loader2 size={15} className="animate-spin" />}
             Create project

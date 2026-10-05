@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Leaf, Loader2 } from "lucide-react";
+import { Leaf } from "lucide-react";
 
 import { InlineError } from "../components/ui/States";
+import { Button, Field } from "../components/ui/Primitives";
+import { inputClass, selectClass } from "../components/ui/fieldStyles";
 import { useAuth } from "../lib/auth";
 import { ROLES, type Role } from "../lib/types";
 
@@ -48,35 +50,34 @@ export default function SignIn() {
     }
   }
 
-  const fieldClass =
-    "h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-600";
+  const signingIn = mode === "signin";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f7f8f6] px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center bg-emerald-700 text-white">
-            <Leaf size={18} />
-          </div>
+        <div className="mb-5 flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand text-ink-inverse">
+            <Leaf size={19} aria-hidden="true" />
+          </span>
 
-          <div>
-            <div className="text-base font-semibold tracking-tight text-slate-900">
+          <span>
+            <span className="block text-base font-semibold tracking-tight text-ink">
               EIA Platform
-            </div>
-            <div className="text-xs text-slate-500">
+            </span>
+            <span className="block text-xs text-ink-muted">
               AI-assisted environmental impact assessment
-            </div>
-          </div>
+            </span>
+          </span>
         </div>
 
-        <div className="border border-slate-200 bg-white">
-          <div className="border-b border-slate-200 px-6 py-5">
-            <h1 className="text-lg font-semibold text-slate-900">
-              {mode === "signin" ? "Sign in" : "Create an account"}
+        <div className="overflow-hidden rounded-lg border border-line bg-surface">
+          <div className="border-b border-line px-6 py-5">
+            <h1 className="text-lg font-semibold text-ink">
+              {signingIn ? "Sign in" : "Create an account"}
             </h1>
 
-            <p className="mt-1 text-sm text-slate-500">
-              {mode === "signin"
+            <p className="mt-1 text-sm text-ink-muted">
+              {signingIn
                 ? "Sign in to reach your projects and assessments."
                 : "Your role sets the defaults used in an assessment."}
             </p>
@@ -85,26 +86,20 @@ export default function SignIn() {
           <form onSubmit={onSubmit} className="space-y-4 p-6">
             {error && <InlineError message={error} />}
 
-            {mode === "signup" && (
-              <div>
-                <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-slate-700">
-                  Full name<span className="ml-1 text-red-500">*</span>
-                </label>
+            {!signingIn && (
+              <Field label="Full name" htmlFor="name" required>
                 <input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
                   autoComplete="name"
-                  className={fieldClass}
+                  className={inputClass}
                 />
-              </div>
+              </Field>
             )}
 
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
-                Email<span className="ml-1 text-red-500">*</span>
-              </label>
+            <Field label="Email" htmlFor="email" required>
               <input
                 id="email"
                 type="email"
@@ -112,48 +107,38 @@ export default function SignIn() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className={fieldClass}
+                className={inputClass}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-              >
-                Password<span className="ml-1 text-red-500">*</span>
-              </label>
+            <Field
+              label="Password"
+              htmlFor="password"
+              required
+              // The backend rejects anything shorter; saying so up front
+              // avoids a round trip to find out.
+              hint={signingIn ? undefined : "At least 8 characters."}
+            >
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                // The backend rejects anything shorter; saying so up front
-                // avoids a round trip to find out.
-                minLength={mode === "signup" ? 8 : undefined}
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                className={fieldClass}
+                minLength={signingIn ? undefined : 8}
+                autoComplete={signingIn ? "current-password" : "new-password"}
+                className={inputClass}
               />
-              {mode === "signup" && (
-                <p className="mt-1.5 text-xs text-slate-500">At least 8 characters.</p>
-              )}
-            </div>
+            </Field>
 
-            {mode === "signup" && (
+            {!signingIn && (
               <>
-                <div>
-                  <label
-                    htmlFor="role"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Role<span className="ml-1 text-red-500">*</span>
-                  </label>
+                <Field label="Role" htmlFor="role" required>
                   <select
                     id="role"
                     value={role}
                     onChange={(e) => setRole(e.target.value as Role)}
-                    className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600"
+                    className={selectClass}
                   >
                     {ROLES.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -161,47 +146,36 @@ export default function SignIn() {
                       </option>
                     ))}
                   </select>
-                </div>
+                </Field>
 
-                <div>
-                  <label
-                    htmlFor="organization"
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                  >
-                    Organisation
-                  </label>
+                <Field label="Organisation" htmlFor="organization">
                   <input
                     id="organization"
                     value={organization}
                     onChange={(e) => setOrganization(e.target.value)}
                     autoComplete="organization"
-                    className={fieldClass}
+                    className={inputClass}
                   />
-                </div>
+                </Field>
               </>
             )}
 
-            <button
-              type="submit"
-              disabled={busy}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-emerald-700 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {busy && <Loader2 size={15} className="animate-spin" />}
-              {mode === "signin" ? "Sign in" : "Create account"}
-            </button>
+            <Button type="submit" disabled={busy} busy={busy} full>
+              {signingIn ? "Sign in" : "Create account"}
+            </Button>
           </form>
 
-          <div className="border-t border-slate-200 bg-slate-50 px-6 py-4 text-center text-sm text-slate-600">
-            {mode === "signin" ? "No account yet? " : "Already have an account? "}
+          <div className="border-t border-line bg-surface-sunken px-6 py-4 text-center text-sm text-ink-muted">
+            {signingIn ? "No account yet? " : "Already have an account? "}
             <button
               type="button"
               onClick={() => {
-                setMode(mode === "signin" ? "signup" : "signin");
+                setMode(signingIn ? "signup" : "signin");
                 setError(null);
               }}
-              className="font-medium text-emerald-700 hover:text-emerald-800"
+              className="font-semibold text-brand transition-colors duration-200 hover:text-brand-hover"
             >
-              {mode === "signin" ? "Create one" : "Sign in"}
+              {signingIn ? "Create one" : "Sign in"}
             </button>
           </div>
         </div>
