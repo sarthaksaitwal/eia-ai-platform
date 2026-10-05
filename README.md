@@ -106,7 +106,42 @@ cp .env.example .env && venv/Scripts/uvicorn app.main:app --reload
 cd frontend && npm install && npm run dev
 ```
 
-> `npm run migrate` drops and recreates all tables.
+The frontend calls the backend at the relative path `/api`, which the Vite dev
+server proxies to `http://localhost:5000` (see `frontend/vite.config.ts`). That
+keeps the browser on one origin, so CORS is not involved in development and no
+frontend `.env` is needed. Point the proxy elsewhere with `VITE_PROXY_TARGET`,
+or bypass it entirely with `VITE_API_BASE_URL`.
+
+Every API route except `/health`, `/api/auth/register` and `/api/auth/login`
+requires a bearer token, so the app sends you to `/signin` until you have one.
+Create an account there on first run.
+
+### Migrations
+
+`npm run migrate` applies each file in `backend/src/db/migrations/` once, in
+filename order, each in its own transaction, and records it in the
+`schema_migrations` table. Running it again does nothing. It never deletes
+data: every migration only creates and alters, and `npm test` fails if one
+contains `DROP TABLE`, `TRUNCATE`, `DELETE FROM` or `DROP COLUMN`.
+
+```bash
+npm run migrate          # apply whatever is pending
+npm run migrate:status   # list what is pending, change nothing
+```
+
+Seeded reference data (regulatory standards, engineering coefficients,
+calculation rules, the Solapur baseline) is loaded separately and is also
+safe to re-run:
+
+```bash
+npm run seed:reference              # upsert, in one transaction
+npm run seed:reference -- --dry-run # roll back instead of committing
+```
+
+> **`npm run migrate:reset -- --yes` drops every table and every row**,
+> including all seeded reference data and every project and assessment. It is
+> the only command that destroys anything, it refuses to run without `--yes`,
+> and `npm run seed:reference` has to be re-run afterwards.
 
 ## Environmental data
 
