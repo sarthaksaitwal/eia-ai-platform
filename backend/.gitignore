@@ -6,3 +6,9 @@ npm-debug.log*
 # Uploaded project documents: keep the folder, not the files
 uploads/*
 !uploads/.gitkeep
+
+# Raw provider responses saved while probing the external APIs by hand.
+# Throwaway diagnostics, not fixtures.
+climate.json
+wdpa_*.json
+wp_geojson.txt

@@ -7,38 +7,28 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 
 -- ===============================================================
--- 2. DROP EXISTING TABLES
+-- 2. NO DROPS
 -- ===============================================================
 --
--- Safe for the current development database because the database
--- currently contains no important data.
+-- This migration used to drop every table before recreating it.
+-- That made the file safe to re-run only while the database held
+-- nothing worth keeping. It now holds collected regulatory
+-- standards, coefficients and the Solapur baseline, so the drops
+-- moved to src/db/drop_all.sql, which only
+--
+--     npm run migrate:reset -- --yes
+--
+-- runs. Everything below uses IF NOT EXISTS, so applying this file
+-- to a populated database creates what is missing and leaves every
+-- existing table and row untouched.
 -- ===============================================================
-
-DROP TABLE IF EXISTS data_fetch_logs CASCADE;
-DROP TABLE IF EXISTS reports CASCADE;
-DROP TABLE IF EXISTS recommendations CASCADE;
-DROP TABLE IF EXISTS impact_results CASCADE;
-DROP TABLE IF EXISTS calculation_engine_runs CASCADE;
-DROP TABLE IF EXISTS calculation_rule_coefficients CASCADE;
-DROP TABLE IF EXISTS engineering_coefficients CASCADE;
-DROP TABLE IF EXISTS calculation_rules CASCADE;
-DROP TABLE IF EXISTS gis_analysis_results CASCADE;
-DROP TABLE IF EXISTS environmental_data CASCADE;
-DROP TABLE IF EXISTS assessment_inputs CASCADE;
-DROP TABLE IF EXISTS assessments CASCADE;
-DROP TABLE IF EXISTS project_documents CASCADE;
-DROP TABLE IF EXISTS project_locations CASCADE;
-DROP TABLE IF EXISTS data_sources CASCADE;
-DROP TABLE IF EXISTS project_parameters CASCADE;
-DROP TABLE IF EXISTS projects CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
 
 
 -- ===============================================================
 -- 3. USERS
 -- ===============================================================
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     name            VARCHAR(150) NOT NULL,
@@ -73,7 +63,7 @@ CREATE TABLE users (
 -- 4. PROJECTS
 -- ===============================================================
 
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     user_id                 UUID NOT NULL,
@@ -149,7 +139,7 @@ CREATE TABLE projects (
 );
 
 
-CREATE INDEX idx_projects_user_id
+CREATE INDEX IF NOT EXISTS idx_projects_user_id
     ON projects(user_id);
 
 
@@ -157,7 +147,7 @@ CREATE INDEX idx_projects_user_id
 -- 5. PROJECT LOCATIONS
 -- ===============================================================
 
-CREATE TABLE project_locations (
+CREATE TABLE IF NOT EXISTS project_locations (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     project_id      UUID NOT NULL UNIQUE,
@@ -201,7 +191,7 @@ CREATE TABLE project_locations (
 );
 
 
-CREATE INDEX idx_project_locations_geom
+CREATE INDEX IF NOT EXISTS idx_project_locations_geom
     ON project_locations
     USING GIST (geom);
 
@@ -210,7 +200,7 @@ CREATE INDEX idx_project_locations_geom
 -- 6. PROJECT DOCUMENTS
 -- ===============================================================
 
-CREATE TABLE project_documents (
+CREATE TABLE IF NOT EXISTS project_documents (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     project_id      UUID NOT NULL,
@@ -237,7 +227,7 @@ CREATE TABLE project_documents (
 );
 
 
-CREATE INDEX idx_project_documents_project_id
+CREATE INDEX IF NOT EXISTS idx_project_documents_project_id
     ON project_documents(project_id);
 
 
@@ -248,7 +238,7 @@ CREATE INDEX idx_project_documents_project_id
 -- One project can have multiple assessments.
 -- ===============================================================
 
-CREATE TABLE assessments (
+CREATE TABLE IF NOT EXISTS assessments (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     project_id          UUID NOT NULL,
@@ -308,7 +298,7 @@ CREATE TABLE assessments (
 );
 
 
-CREATE INDEX idx_assessments_project_id
+CREATE INDEX IF NOT EXISTS idx_assessments_project_id
     ON assessments(project_id);
 
 
@@ -316,7 +306,7 @@ CREATE INDEX idx_assessments_project_id
 -- 8. ASSESSMENT INPUTS
 -- ===============================================================
 
-CREATE TABLE assessment_inputs (
+CREATE TABLE IF NOT EXISTS assessment_inputs (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     assessment_id   UUID NOT NULL,
@@ -357,7 +347,7 @@ CREATE TABLE assessment_inputs (
 );
 
 
-CREATE INDEX idx_assessment_inputs_assessment_id
+CREATE INDEX IF NOT EXISTS idx_assessment_inputs_assessment_id
     ON assessment_inputs(assessment_id);
 
 
@@ -365,7 +355,7 @@ CREATE INDEX idx_assessment_inputs_assessment_id
 -- 9. DATA SOURCES
 -- ===============================================================
 
-CREATE TABLE data_sources (
+CREATE TABLE IF NOT EXISTS data_sources (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     name            VARCHAR(150) NOT NULL,
@@ -390,7 +380,7 @@ CREATE TABLE data_sources (
 -- 10. ENVIRONMENTAL DATA
 -- ===============================================================
 
-CREATE TABLE environmental_data (
+CREATE TABLE IF NOT EXISTS environmental_data (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     assessment_id   UUID NOT NULL,
@@ -445,16 +435,16 @@ CREATE TABLE environmental_data (
 );
 
 
-CREATE INDEX idx_environmental_data_assessment_id
+CREATE INDEX IF NOT EXISTS idx_environmental_data_assessment_id
     ON environmental_data(assessment_id);
 
-CREATE INDEX idx_environmental_data_location_id
+CREATE INDEX IF NOT EXISTS idx_environmental_data_location_id
     ON environmental_data(location_id);
 
-CREATE INDEX idx_environmental_data_source_id
+CREATE INDEX IF NOT EXISTS idx_environmental_data_source_id
     ON environmental_data(source_id);
 
-CREATE INDEX idx_environmental_data_category
+CREATE INDEX IF NOT EXISTS idx_environmental_data_category
     ON environmental_data(category);
 
 
@@ -474,7 +464,7 @@ CREATE INDEX idx_environmental_data_category
 -- assessment_inputs and externally fetched environmental_data.
 -- ===============================================================
 
-CREATE TABLE gis_analysis_results (
+CREATE TABLE IF NOT EXISTS gis_analysis_results (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     assessment_id       UUID NOT NULL,
@@ -532,13 +522,13 @@ CREATE TABLE gis_analysis_results (
 );
 
 
-CREATE INDEX idx_gis_analysis_results_assessment_id
+CREATE INDEX IF NOT EXISTS idx_gis_analysis_results_assessment_id
     ON gis_analysis_results(assessment_id);
 
-CREATE INDEX idx_gis_analysis_results_location_id
+CREATE INDEX IF NOT EXISTS idx_gis_analysis_results_location_id
     ON gis_analysis_results(location_id);
 
-CREATE INDEX idx_gis_analysis_results_feature_type
+CREATE INDEX IF NOT EXISTS idx_gis_analysis_results_feature_type
     ON gis_analysis_results(feature_type);
 
 
@@ -559,7 +549,7 @@ CREATE INDEX idx_gis_analysis_results_feature_type
 -- as authoritative environmental/regulatory values.
 -- ===============================================================
 
-CREATE TABLE engineering_coefficients (
+CREATE TABLE IF NOT EXISTS engineering_coefficients (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     industry            VARCHAR(150),
@@ -610,13 +600,13 @@ CREATE TABLE engineering_coefficients (
 );
 
 
-CREATE INDEX idx_engineering_coefficients_industry
+CREATE INDEX IF NOT EXISTS idx_engineering_coefficients_industry
     ON engineering_coefficients(industry);
 
-CREATE INDEX idx_engineering_coefficients_factor
+CREATE INDEX IF NOT EXISTS idx_engineering_coefficients_factor
     ON engineering_coefficients(factor);
 
-CREATE INDEX idx_engineering_coefficients_active
+CREATE INDEX IF NOT EXISTS idx_engineering_coefficients_active
     ON engineering_coefficients(active);
 
 
@@ -634,7 +624,7 @@ CREATE INDEX idx_engineering_coefficients_active
 -- The numerical factor itself lives in engineering_coefficients.
 -- ===============================================================
 
-CREATE TABLE calculation_rules (
+CREATE TABLE IF NOT EXISTS calculation_rules (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     factor              VARCHAR(50) NOT NULL,
@@ -684,10 +674,10 @@ CREATE TABLE calculation_rules (
 );
 
 
-CREATE INDEX idx_calculation_rules_factor
+CREATE INDEX IF NOT EXISTS idx_calculation_rules_factor
     ON calculation_rules(factor);
 
-CREATE INDEX idx_calculation_rules_active
+CREATE INDEX IF NOT EXISTS idx_calculation_rules_active
     ON calculation_rules(active);
 
 
@@ -701,7 +691,7 @@ CREATE INDEX idx_calculation_rules_active
 -- Therefore this is a MANY-TO-MANY relationship.
 -- ===============================================================
 
-CREATE TABLE calculation_rule_coefficients (
+CREATE TABLE IF NOT EXISTS calculation_rule_coefficients (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     rule_id             UUID NOT NULL,
@@ -732,10 +722,10 @@ CREATE TABLE calculation_rule_coefficients (
 );
 
 
-CREATE INDEX idx_rule_coefficients_rule_id
+CREATE INDEX IF NOT EXISTS idx_rule_coefficients_rule_id
     ON calculation_rule_coefficients(rule_id);
 
-CREATE INDEX idx_rule_coefficients_coefficient_id
+CREATE INDEX IF NOT EXISTS idx_rule_coefficients_coefficient_id
     ON calculation_rule_coefficients(coefficient_id);
 
 
@@ -762,7 +752,7 @@ CREATE INDEX idx_rule_coefficients_coefficient_id
 -- impact_results          = ACTUAL ENVIRONMENTAL RESULTS
 -- ===============================================================
 
-CREATE TABLE calculation_engine_runs (
+CREATE TABLE IF NOT EXISTS calculation_engine_runs (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     assessment_id       UUID NOT NULL,
@@ -817,10 +807,10 @@ CREATE TABLE calculation_engine_runs (
 );
 
 
-CREATE INDEX idx_calculation_engine_runs_assessment_id
+CREATE INDEX IF NOT EXISTS idx_calculation_engine_runs_assessment_id
     ON calculation_engine_runs(assessment_id);
 
-CREATE INDEX idx_calculation_engine_runs_status
+CREATE INDEX IF NOT EXISTS idx_calculation_engine_runs_status
     ON calculation_engine_runs(status);
 
 
@@ -832,7 +822,7 @@ CREATE INDEX idx_calculation_engine_runs_status
 -- is executed for an assessment.
 -- ===============================================================
 
-CREATE TABLE impact_results (
+CREATE TABLE IF NOT EXISTS impact_results (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     assessment_id       UUID NOT NULL,
@@ -900,13 +890,13 @@ CREATE TABLE impact_results (
 );
 
 
-CREATE INDEX idx_impact_results_assessment_id
+CREATE INDEX IF NOT EXISTS idx_impact_results_assessment_id
     ON impact_results(assessment_id);
 
-CREATE INDEX idx_impact_results_rule_id
+CREATE INDEX IF NOT EXISTS idx_impact_results_rule_id
     ON impact_results(rule_id);
 
-CREATE INDEX idx_impact_results_factor
+CREATE INDEX IF NOT EXISTS idx_impact_results_factor
     ON impact_results(factor);
 
 
@@ -914,7 +904,7 @@ CREATE INDEX idx_impact_results_factor
 -- 17. RECOMMENDATIONS
 -- ===============================================================
 
-CREATE TABLE recommendations (
+CREATE TABLE IF NOT EXISTS recommendations (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     assessment_id       UUID NOT NULL,
@@ -971,10 +961,10 @@ CREATE TABLE recommendations (
 );
 
 
-CREATE INDEX idx_recommendations_assessment_id
+CREATE INDEX IF NOT EXISTS idx_recommendations_assessment_id
     ON recommendations(assessment_id);
 
-CREATE INDEX idx_recommendations_impact_result_id
+CREATE INDEX IF NOT EXISTS idx_recommendations_impact_result_id
     ON recommendations(impact_result_id);
 
 
@@ -982,7 +972,7 @@ CREATE INDEX idx_recommendations_impact_result_id
 -- 18. REPORTS
 -- ===============================================================
 
-CREATE TABLE reports (
+CREATE TABLE IF NOT EXISTS reports (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     assessment_id   UUID NOT NULL,
@@ -1013,10 +1003,10 @@ CREATE TABLE reports (
 );
 
 
-CREATE INDEX idx_reports_assessment_id
+CREATE INDEX IF NOT EXISTS idx_reports_assessment_id
     ON reports(assessment_id);
 
-CREATE INDEX idx_reports_generated_by
+CREATE INDEX IF NOT EXISTS idx_reports_generated_by
     ON reports(generated_by);
 
 
@@ -1027,7 +1017,7 @@ CREATE INDEX idx_reports_generated_by
 -- Optional but useful for external environmental API auditing.
 -- ===============================================================
 
-CREATE TABLE data_fetch_logs (
+CREATE TABLE IF NOT EXISTS data_fetch_logs (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     assessment_id       UUID NOT NULL,
@@ -1058,10 +1048,10 @@ CREATE TABLE data_fetch_logs (
 );
 
 
-CREATE INDEX idx_data_fetch_logs_assessment_id
+CREATE INDEX IF NOT EXISTS idx_data_fetch_logs_assessment_id
     ON data_fetch_logs(assessment_id);
 
-CREATE INDEX idx_data_fetch_logs_source_id
+CREATE INDEX IF NOT EXISTS idx_data_fetch_logs_source_id
     ON data_fetch_logs(source_id);
 
 
@@ -1093,6 +1083,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+DROP TRIGGER IF EXISTS trg_project_location_geom ON project_locations;
+
 CREATE TRIGGER trg_project_location_geom
 BEFORE INSERT OR UPDATE OF latitude, longitude
 ON project_locations
@@ -1113,11 +1105,15 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
+
 CREATE TRIGGER trg_users_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+
+DROP TRIGGER IF EXISTS trg_projects_updated_at ON projects;
 
 CREATE TRIGGER trg_projects_updated_at
 BEFORE UPDATE ON projects
@@ -1125,11 +1121,15 @@ FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 
+DROP TRIGGER IF EXISTS trg_assessments_updated_at ON assessments;
+
 CREATE TRIGGER trg_assessments_updated_at
 BEFORE UPDATE ON assessments
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+
+DROP TRIGGER IF EXISTS trg_assessment_inputs_updated_at ON assessment_inputs;
 
 CREATE TRIGGER trg_assessment_inputs_updated_at
 BEFORE UPDATE ON assessment_inputs
@@ -1137,11 +1137,15 @@ FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 
+DROP TRIGGER IF EXISTS trg_data_sources_updated_at ON data_sources;
+
 CREATE TRIGGER trg_data_sources_updated_at
 BEFORE UPDATE ON data_sources
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+
+DROP TRIGGER IF EXISTS trg_engineering_coefficients_updated_at ON engineering_coefficients;
 
 CREATE TRIGGER trg_engineering_coefficients_updated_at
 BEFORE UPDATE ON engineering_coefficients
@@ -1149,11 +1153,15 @@ FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 
+DROP TRIGGER IF EXISTS trg_calculation_rules_updated_at ON calculation_rules;
+
 CREATE TRIGGER trg_calculation_rules_updated_at
 BEFORE UPDATE ON calculation_rules
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+
+DROP TRIGGER IF EXISTS trg_recommendations_updated_at ON recommendations;
 
 CREATE TRIGGER trg_recommendations_updated_at
 BEFORE UPDATE ON recommendations
@@ -1429,7 +1437,8 @@ VALUES
     'MVP-DEMO-1',
     '{"waste_type":"generic","status":"demonstration"}',
     TRUE
-);
+)
+ON CONFLICT (coefficient_code) DO NOTHING;
 
 
 -- ===============================================================
@@ -1510,7 +1519,8 @@ VALUES
     'MVP-DEMO-1',
     'PLACEHOLDER - replace with validated methodology',
     TRUE
-);
+)
+ON CONFLICT (rule_code) DO NOTHING;
 
 
 -- ===============================================================
@@ -1554,7 +1564,8 @@ JOIN engineering_coefficients c
         OR
         (r.rule_code = 'DEMO_PM10_BY_PRODUCTION'    AND c.factor = 'Air')
     )
-WHERE c.coefficient_code LIKE 'DEMO_%';
+WHERE c.coefficient_code LIKE 'DEMO_%'
+ON CONFLICT ON CONSTRAINT uq_rule_coefficient DO NOTHING;
 
 
 -- ===============================================================
