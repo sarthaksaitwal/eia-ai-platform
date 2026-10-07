@@ -1,0 +1,18 @@
+# 49 MB of host-built CPython. The image installs its own dependencies, and a
+# virtualenv built on Windows would not run in the container anyway.
+venv
+.venv
+
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+
+# The API keys live here. They reach the container through compose, never
+# through an image layer.
+.env
+.env.*
+!.env.example
+
+Dockerfile
+.dockerignore

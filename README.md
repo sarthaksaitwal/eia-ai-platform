@@ -28,6 +28,9 @@ React frontend  ──►  Node/Express backend  ──►  PostgreSQL/PostGIS
 
 ```text
 eia-ai-platform/
+├── compose.yaml                  development stack (see "Running in Docker")
+├── .env.example                  configuration for that stack; copy to .env
+│
 ├── frontend/                     React (Vite)
 │   └── src/
 │       ├── app/                  app shell
@@ -142,6 +145,80 @@ npm run seed:reference -- --dry-run # roll back instead of committing
 > including all seeded reference data and every project and assessment. It is
 > the only command that destroys anything, it refuses to run without `--yes`,
 > and `npm run seed:reference` has to be re-run afterwards.
+
+## Running in Docker
+
+An alternative to the native setup above. Same three services plus a
+PostGIS database, each with hot reload, so this is for working on the code
+rather than for deployment.
+
+```bash
+cp .env.example .env         # then put a JWT_SECRET in it
+docker compose up --build    # frontend :5173, backend :5000, analytics :8000
+docker compose run --rm init # apply migrations and seed reference data
+```
+
+`init` is a one-shot container, and it is the only thing that touches the
+schema. Nothing migrates on `up`, so **on a fresh volume the database is empty
+until you run it** and any request that reads a table answers 500 until then.
+It is safe to run again whenever a migration is added: the ledger skips what
+is already applied and the seeders upsert.
+
+```bash
+docker compose logs -f backend          # follow one service
+docker compose exec backend npm test    # the backend suite, in the container
+docker compose run --rm analytics pytest
+docker compose down                     # stop; the database volume survives
+docker compose down -v                  # stop and delete the database
+```
+
+**The containerised database is not your local one.** It lives in a Docker
+volume, listens on **5433** on the host specifically so it cannot collide with
+the PostgreSQL install that holds 5432, and nothing in `compose.yaml` can
+reach that instance. Your local `eia_platform` and everything in it is
+untouched by any command here, including `down -v`.
+
+### Configuration
+
+`.env` at the repository root configures the stack, and is gitignored.
+`JWT_SECRET` has no default: compose stops with a message rather than start
+with the public placeholder from `backend/.env.example`, since a token signed
+with that is forgeable by anyone who has read this repository.
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+The two provider API keys stay where they already are, in
+`analytics-service/.env`, which the analytics container reads through its bind
+mount. They are deliberately absent from the root `.env` and from
+`compose.yaml`: an environment variable outranks a `.env` file, every provider
+client treats an empty key as no key, and so a blank `OGD_API_KEY` in compose
+would silently shadow the real one and report CPCB as "skipped".
+
+`backend/.env` and `analytics-service/.env` are both visible inside the
+containers via the bind mounts, and both are still what the native setup uses.
+Where they disagree with `compose.yaml` — `DATABASE_URL` pointing at
+`localhost`, for instance — compose wins: `dotenv` does not overwrite a
+variable that is already set, and pydantic-settings ranks the environment
+above the file.
+
+### Notes on the containers
+
+- **Ports.** Override any of `FRONTEND_PORT`, `BACKEND_PORT`,
+  `ANALYTICS_PORT`, `DB_PORT` in `.env` if something on the host holds one.
+- **Hot reload uses polling**, not filesystem events. A bind mount from a
+  Windows host does not deliver inotify events into a Linux container, so the
+  watchers would never fire. Hence `--legacy-watch` for the backend,
+  `VITE_USE_POLLING` for the frontend and `WATCHFILES_FORCE_POLLING` for
+  analytics. It costs some idle CPU and is off outside Docker.
+- **`node_modules` is a named volume** for the two Node services, so the
+  container keeps its own Linux build. Without that, the bind mount would
+  expose the host's Windows binaries and `bcrypt` would fail to load. After
+  changing a dependency, rebuild: `docker compose up --build`.
+- **Python is 3.12** in the image while the host venv is 3.10.9. Every pin in
+  `requirements.txt` supports both. To match the host exactly:
+  `docker compose build --build-arg PYTHON_VERSION=3.10 analytics`.
 
 ## Environmental data
 

@@ -1,0 +1,22 @@
+# 195 MB, and the largest single reason an unfiltered build context is slow.
+# The image installs Linux builds of the same packages.
+node_modules
+
+# Built output. The dev server compiles in memory.
+dist
+dist-ssr
+
+*.log
+npm-debug.log*
+*.local
+
+.env
+.env.*
+!.env.example
+
+.vscode
+.idea
+.DS_Store
+
+Dockerfile
+.dockerignore
