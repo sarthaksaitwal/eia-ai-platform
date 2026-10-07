@@ -1,0 +1,218 @@
+# Development stack for the AI-Assisted EIA Platform.
+#
+#   docker compose up --build          # the whole stack, with hot reload
+#   docker compose run --rm init       # apply migrations + seed reference data
+#   docker compose down                # stop; the database volume survives
+#   docker compose down -v             # stop and delete the database too
+#
+# The schema is NOT applied automatically. A fresh volume starts with an empty
+# database, the API answers 500 on anything that touches a table, and `init`
+# above is what fixes that. Running it twice is safe: the migration ledger
+# skips what is already applied and the seeders upsert.
+#
+# The database in here is its own thing, in a Docker volume. It is not the
+# local eia_platform instance on the host, and nothing in this file can reach
+# that one.
+
+name: eia-platform
+
+services:
+  db:
+    # PostgreSQL 15 is a floor, not a preference: migration 006 uses
+    # UNIQUE NULLS NOT DISTINCT, which does not exist before 15. 3.4 is the
+    # PostGIS version; 001_init.sql creates the postgis and uuid-ossp
+    # extensions, both of which this image carries.
+    image: postgis/postgis:15-3.4
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eia_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eia_password}
+      POSTGRES_DB: ${POSTGRES_DB:-eia_platform}
+    ports:
+      # 5433 on the host, not 5432: this project is developed against a local
+      # PostgreSQL that already holds that port. Connect with
+      #   psql -h localhost -p 5433 -U eia_user -d eia_platform
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Everything else waits on this, so it has to mean "accepting queries",
+      # not "the process started".
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eia_user} -d ${POSTGRES_DB:-eia_platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  analytics:
+    build:
+      context: ./analytics-service
+    environment:
+      PORT: 8000
+      # Node calls this service server-to-server, so CORS is not in play; it
+      # is set for the case of opening /docs in a browser.
+      CORS_ORIGINS: http://localhost:8000,http://localhost:5173
+      # OGD_API_KEY and OPENAQ_API_KEY are deliberately NOT listed here.
+      #
+      # They already live in analytics-service/.env, which the bind mount below
+      # places at /app/.env, exactly where this service's Settings class looks
+      # for it. That file stays the one place the keys exist, and it is
+      # gitignored and excluded from the image.
+      #
+      # Setting them here would be actively harmful: compose would pass an
+      # empty string whenever the variable is absent from the shell, an
+      # environment variable outranks the .env file in pydantic-settings, and
+      # every provider client tests the key with `if not api_key`. The real
+      # keys would be shadowed by "" and CPCB and OpenAQ would report
+      # themselves "skipped" with no indication why.
+      #
+      # uvicorn --reload watches with watchfiles, which needs the same polling
+      # treatment as Vite for a Windows bind mount.
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "${ANALYTICS_PORT:-8000}:8000"
+    volumes:
+      # Source only. Dependencies live in the image at /usr/local, so there is
+      # nothing here for the mount to shadow.
+      - ./analytics-service:/app
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+      # Scoped to the package. Without this the reloader walks everything
+      # under /app, and the bind mount carries the host's 49 MB venv into the
+      # container -- which, combined with forced polling, is a lot of CPU
+      # spent watching files that are never imported.
+      - --reload-dir
+      - app
+    healthcheck:
+      # urllib rather than curl: the slim image has no curl, and adding one
+      # for a healthcheck is a layer for nothing.
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=4).status == 200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      PORT: 5000
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-eia_user}:${POSTGRES_PASSWORD:-eia_password}@db:5432/${POSTGRES_DB:-eia_platform}
+      # Deliberately has no default. The value committed in backend/.env.example
+      # is a public placeholder, and anything signed with it is forgeable by
+      # anyone who has read this repository. Compose stops here if it is unset.
+      JWT_SECRET: "${JWT_SECRET:?is not set. Copy .env.example to .env and put a long random value there. See that file for how to generate one.}"
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      # Where the browser comes from. The Vite dev server proxies /api, so in
+      # normal use nothing is cross-origin and this is only a fallback.
+      CLIENT_ORIGIN: http://localhost:${FRONTEND_PORT:-5173}
+      # Service name, not localhost: inside the compose network each service
+      # resolves by the name it has in this file.
+      ANALYTICS_SERVICE_URL: http://analytics:8000
+      # One baseline fetch can spend 240 s in a single provider. Node's fetch
+      # gives up on response headers at 300 s, so this stays below that.
+      ANALYTICS_TIMEOUT_MS: ${ANALYTICS_TIMEOUT_MS:-270000}
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    volumes:
+      - ./backend:/app
+      # Keeps the image's Linux node_modules in place. Without this the bind
+      # mount above hides them and exposes the host's Windows build of bcrypt,
+      # which cannot load in the container.
+      - backend_node_modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+      analytics:
+        condition: service_started
+    # --legacy-watch polls, because a bind mount from Windows delivers no
+    # filesystem events and `node --watch` would never restart. See the
+    # Dockerfile for why nodemon is installed there rather than in
+    # package.json.
+    command: ["nodemon", "--legacy-watch", "--watch", "src", "src/server.js"]
+    healthcheck:
+      # Node 24 has a global fetch, so this needs nothing installed.
+      #
+      # It sets process.exitCode and lets the process end on its own rather
+      # than calling process.exit() in the callback. process.exit() while the
+      # undici socket is still open aborts Node -- verified here: against a
+      # live /health it died on `Assertion failed: !(handle->flags &
+      # UV_HANDLE_CLOSING)` and returned 0xC0000409, so the check failed
+      # precisely when the service was healthy and depends_on would have
+      # waited forever. Awaiting r.text() releases the socket so the event
+      # loop drains.
+      test:
+        - CMD-SHELL
+        - node -e "fetch('http://localhost:5000/health').then(async r => { await r.text(); if (!r.ok) process.exitCode = 1; }).catch(() => { process.exitCode = 1; })"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      # vite.config.ts reads this; it is why the browser can call /api without
+      # CORS and without knowing where the backend lives.
+      VITE_PROXY_TARGET: http://backend:5000
+      # Turns on the Vite file watcher's polling. Off outside Docker.
+      VITE_USE_POLLING: "true"
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  # Not started by `docker compose up`: it sits behind a profile, so the
+  # schema changes only when asked for.
+  #
+  #   docker compose run --rm init
+  #
+  # `run` enables the service's profile by itself, so no --profile flag is
+  # needed. It reuses the backend image, since the migration runner and the
+  # seeders are backend code.
+  init:
+    profiles: ["tools"]
+    build:
+      context: ./backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-eia_user}:${POSTGRES_PASSWORD:-eia_password}@db:5432/${POSTGRES_DB:-eia_platform}
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+      # seedReference.js resolves its CSVs with
+      #   path.join(__dirname, "..", "..", "..", "docs", "data-collection")
+      # which from /app/src/db climbs out of /app entirely and lands on
+      # /docs. Mounted read-only because the seeder only ever reads them.
+      - ./docs:/docs:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    # migrate is tracked by the schema_migrations ledger and every file is
+    # written to be applied twice without destroying anything; seed:reference
+    # upserts. So this is safe to run again, and running it is how you apply a
+    # newly added migration.
+    command: ["sh", "-c", "npm run migrate && npm run seed:reference"]
+    restart: "no"
+
+volumes:
+  pgdata:
+  backend_node_modules:
+  frontend_node_modules:

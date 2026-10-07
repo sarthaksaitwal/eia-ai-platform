@@ -1,0 +1,23 @@
+# node_modules is 14 MB of binaries built for the host OS. The image installs
+# its own for Linux, and a named volume keeps them out of the bind mount's way.
+node_modules
+npm-debug.log*
+*.log
+
+# Secrets never enter an image layer. The container is configured through
+# compose, which reads the repository-root .env.
+.env
+.env.*
+!.env.example
+
+# Uploaded project documents belong to a running instance, not to the image.
+uploads/*
+!uploads/.gitkeep
+
+# Raw provider responses saved while probing the external APIs by hand.
+climate.json
+wdpa_*.json
+wp_geojson.txt
+
+Dockerfile
+.dockerignore
