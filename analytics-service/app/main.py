@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import environmental_data
+from app.routers import calculations, environmental_data
 
 # Stateless by design: this service fetches and computes, and returns
 # structured JSON. The Node backend owns all database persistence.
@@ -20,6 +20,7 @@ app.add_middleware(
 )
 
 app.include_router(environmental_data.router, prefix="/api")
+app.include_router(calculations.router, prefix="/api")
 
 
 @app.get("/health")

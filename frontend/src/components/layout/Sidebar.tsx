@@ -41,15 +41,18 @@ const NAVIGATION: { section: string; items: Item[] }[] = [
   {
     section: "Assessment",
     items: [
+      // Both screens exist but are scoped to one project, so there is no
+      // meaningful destination from the sidebar. They are listed with where
+      // to find them rather than left out.
       {
-        label: "Assessment inputs",
+        label: "Project inputs",
         icon: ClipboardCheck,
-        pending: "Opens from a project once the inputs screen is built",
+        pending: "Opens from a project, under Enter project inputs",
       },
       {
-        label: "Impact results",
+        label: "Calculated results",
         icon: Database,
-        pending: "Available once the calculation engine is built",
+        pending: "Opens from a project, once inputs have been calculated",
       },
       {
         label: "Reports",

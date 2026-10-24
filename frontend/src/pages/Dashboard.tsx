@@ -44,24 +44,19 @@ export default function Dashboard() {
   }, [projectIds]);
 
   const standards = useApi(() => api.listStandards(), []);
-  const coefficients = useApi(() => api.listCoefficients(), []);
+  // The module registry, not the old engineering_coefficients table: the
+  // engine reads module_constants, where the input mapping is NOT NULL and
+  // so every stored row is usable.
+  const reference = useApi(() => api.listModuleReference(), []);
+  const modules = useApi(() => api.listModules(), []);
 
   const projectRows = projects.data?.projects ?? [];
   const assessmentRows = assessments.data ?? [];
   const standardRows = useMemo(() => standards.data?.standards ?? [], [standards.data]);
-  const coefficientRows = useMemo(
-    () => coefficients.data?.coefficients ?? [],
-    [coefficients.data]
-  );
 
-  // Only a coefficient with an input parameter and both units can turn an
-  // entered quantity into a result; the rest are reference-only rows.
-  const usableCoefficients = useMemo(
-    () =>
-      coefficientRows.filter((c) => c.input_parameter && c.unit && c.result_unit && c.active)
-        .length,
-    [coefficientRows]
-  );
+  const constantRows = reference.data?.constants ?? [];
+  const moduleRows = modules.data?.modules ?? [];
+  const outputCount = moduleRows.reduce((total, m) => total + m.outputs.length, 0);
 
   const byStandard = useMemo(() => {
     const counts = new Map<string, number>();
@@ -113,12 +108,13 @@ export default function Dashboard() {
         />
 
         <StatCard
-          label="Usable coefficients"
-          value={coefficients.loading ? "—" : formatCount(usableCoefficients)}
+          label="Calculable outputs"
+          value={modules.loading ? "—" : formatCount(outputCount)}
           hint={
-            coefficients.loading
+            modules.loading || reference.loading
               ? undefined
-              : `of ${formatCount(coefficientRows.length)} seeded rows`
+              : `across ${formatCount(moduleRows.length)} modules, `
+                + `${formatCount(constantRows.length)} constants`
           }
           icon={Database}
         />
@@ -252,14 +248,16 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* The calculation engine is not built, so there are no impact results
-          to show. Saying so beats an empty chart that looks broken. */}
+      {/* Results belong to an assessment, so there is nothing project-wide to
+          chart here. Pointing at where they live beats an empty panel. */}
       <div className="mt-5">
-        <Note tone="neutral" icon={Info} title="Impact results are not calculated yet">
+        <Note tone="neutral" icon={Info} title="Where results live">
           <p>
-            The platform currently records projects, sites and the collected environmental
-            baseline. Quantities and within-limit comparisons appear here once the calculation
-            engine is built, and will be derived from the seeded coefficients and limits.
+            {formatCount(outputCount)} outputs across{" "}
+            {formatCount(moduleRows.length)} modules are calculated per assessment, from
+            the figures entered for that project. Open a project and choose{" "}
+            <span className="font-semibold">Enter project inputs</span>, then calculate.
+            A figure that has not been entered is reported as missing, never as zero.
           </p>
 
           <p className="mt-2 flex flex-wrap items-center gap-2">

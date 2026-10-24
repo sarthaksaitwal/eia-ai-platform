@@ -162,3 +162,161 @@ class EnvironmentalDataResponse(BaseModel):
     required_inputs: list[RequiredInput]
     providers: list[ProviderOutcome]
     warnings: list[str]
+
+
+# ===============================================================
+# Calculation engine
+# ===============================================================
+#
+# The Node backend owns persistence, so it sends the engine
+# everything the run needs: the module definitions as seeded, the
+# constants and limits, the values the user entered, and the site
+# context. Nothing below is read from a database by this service.
+
+
+CalculationStatus = Literal[
+    "CALCULATED",
+    "NOT_CALCULATED_MISSING_INPUT",
+    "NOT_CALCULATED_UNIT_MISMATCH",
+    "NOT_CALCULATED_NO_FACTOR",
+    "NOT_APPLICABLE",
+    "VERIFICATION_REQUIRED",
+]
+
+Comparison = Literal["within_limit", "outside_limit", "not_compared"]
+
+
+class ParameterDefinition(BaseModel):
+    """One module_parameters row. The unit is the part the engine needs:
+    it is what an entered value must match, or be convertible to."""
+
+    code: str = Field(min_length=1)
+    label: Optional[str] = None
+    unit: Optional[str] = None
+    value_type: str = "numeric"
+    required: bool = False
+
+
+class ConstantDefinition(BaseModel):
+    """One module_constants row."""
+
+    code: str = Field(min_length=1)
+    label: Optional[str] = None
+    value: float
+    unit: str = ""
+    applies_to: str = Field(min_length=1)
+    expects_unit: str = ""
+    result_unit: str = ""
+    tags: dict[str, Any] = Field(default_factory=dict)
+    source: str = ""
+    version: Optional[str] = None
+    verified: bool = False
+
+
+class LimitDefinition(BaseModel):
+    """One module_limits row."""
+
+    code: str = Field(min_length=1)
+    label: Optional[str] = None
+    subject: str = Field(min_length=1)
+    selector: dict[str, Any] = Field(default_factory=dict)
+    comparison: str = "max"
+    value: float
+    value_max: Optional[float] = None
+    unit: str = ""
+    is_index: bool = False
+    source: str = ""
+    version: Optional[str] = None
+    verified: bool = False
+
+
+class OutputDefinition(BaseModel):
+    """One module_outputs row. `formula_text` is carried through onto the
+    result for the report; it is never parsed."""
+
+    code: str = Field(min_length=1)
+    label: Optional[str] = None
+    unit: Optional[str] = None
+    formula_text: Optional[str] = None
+    operation: Optional[str] = None
+    comparable: bool = False
+    limitation_note: Optional[str] = None
+
+
+class ModuleDefinition(BaseModel):
+    code: str = Field(min_length=1)
+    name: Optional[str] = None
+    # A disabled module contributes neither outputs nor reference data, so
+    # nothing can be borrowed from a module that is not live yet.
+    enabled: bool = True
+    parameters: list[ParameterDefinition] = Field(default_factory=list)
+    constants: list[ConstantDefinition] = Field(default_factory=list)
+    limits: list[LimitDefinition] = Field(default_factory=list)
+    outputs: list[OutputDefinition] = Field(default_factory=list)
+
+
+class EnteredValue(BaseModel):
+    """One assessment_parameter_values row."""
+
+    parameter_code: str = Field(min_length=1)
+    label: Optional[str] = None
+    value_numeric: Optional[float] = None
+    value_text: Optional[str] = None
+    unit: Optional[str] = None
+    source_status: str = "USER_REPORTED"
+    reporting_period: Optional[str] = None
+
+
+class CalculationRequest(BaseModel):
+    assessment_id: Optional[str] = Field(
+        default=None, description="Echoed back for traceability only."
+    )
+    # Facts about the site rather than answers to questions. The noise zone
+    # lives here because it is already recorded on project_locations, and
+    # asking for it again would let the two answers disagree.
+    context: dict[str, Any] = Field(default_factory=dict)
+    modules: list[ModuleDefinition] = Field(default_factory=list)
+    values: list[EnteredValue] = Field(default_factory=list)
+
+
+class ModuleResult(BaseModel):
+    module_code: str
+    output_code: str
+    label: Optional[str] = None
+    status: CalculationStatus
+    value_numeric: Optional[float] = None
+    value_text: Optional[str] = None
+    unit: Optional[str] = None
+    # Which parameter codes were absent, when the status says so.
+    missing_inputs: Optional[list[str]] = None
+    comparison: Comparison = "not_compared"
+    limit_code: Optional[str] = None
+    limit_value: Optional[float] = None
+    limit_unit: Optional[str] = None
+    inputs_used: Optional[list[dict[str, Any]]] = None
+    constants_used: Optional[list[dict[str, Any]]] = None
+    limits_used: Optional[list[dict[str, Any]]] = None
+    derived_from: Optional[list[str]] = None
+    formula_text: Optional[str] = None
+    limitation_note: Optional[str] = None
+    # True when any constant or limit behind the number is still unchecked
+    # by a person, or when a component it was built from was provisional.
+    provisional: bool = False
+    # Why a calculation did not happen, in a sentence meant for the user.
+    detail: Optional[str] = None
+
+
+class SkippedModule(BaseModel):
+    module_code: str
+    reason: str
+
+
+class CalculationResponse(BaseModel):
+    engine_version: str
+    assessment_id: Optional[str] = None
+    results: list[ModuleResult]
+    # Counts by status, for the run summary.
+    summary: dict[str, int] = Field(default_factory=dict)
+    skipped_modules: list[SkippedModule] = Field(default_factory=list)
+    duration_ms: int = 0
+    error: Optional[str] = None

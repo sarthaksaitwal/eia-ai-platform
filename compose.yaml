@@ -206,10 +206,19 @@ services:
       db:
         condition: service_healthy
     # migrate is tracked by the schema_migrations ledger and every file is
-    # written to be applied twice without destroying anything; seed:reference
-    # upserts. So this is safe to run again, and running it is how you apply a
+    # written to be applied twice without destroying anything; both seeders
+    # upsert. So this is safe to run again, and running it is how you apply a
     # newly added migration.
-    command: ["sh", "-c", "npm run migrate && npm run seed:reference"]
+    #
+    # seed:reference fills the tables the environmental baseline reads
+    # (regulatory_standards, regional_baseline, data_sources).
+    # seed:modules fills the module-driven calculation tables from
+    # src/db/seeds/modules/ -- the five modules, their questions, their
+    # constants and the published limits they compare against.
+    command:
+      - sh
+      - -c
+      - npm run migrate && npm run seed:reference && npm run seed:modules
     restart: "no"
 
 volumes:

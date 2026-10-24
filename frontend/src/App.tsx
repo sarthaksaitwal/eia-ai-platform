@@ -8,7 +8,9 @@ import { AuthProvider, useAuth } from "./lib/auth";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import CreateProject from "./pages/CreateProject";
+import Inputs from "./pages/Inputs";
 import Location from "./pages/Location";
+import Results from "./pages/Results";
 import SignIn from "./pages/SignIn";
 
 // Every API route except /health and the two auth routes needs a bearer
@@ -58,6 +60,8 @@ function AppRoutes() {
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/new" element={<CreateProject />} />
         <Route path="/projects/:id/location" element={<Location />} />
+        <Route path="/projects/:id/inputs" element={<Inputs />} />
+        <Route path="/projects/:id/results" element={<Results />} />
       </Route>
 
       {/* The sidebar links to pages that do not exist yet; without this a

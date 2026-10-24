@@ -20,9 +20,11 @@ function baseUrl() {
   return url.replace(/\/+$/, "");
 }
 
-async function postJson(path, payload) {
+async function postJson(path, payload, { timeoutMs: override = null } = {}) {
   const url = `${baseUrl()}${path}`;
-  const timeoutMs = Number(process.env.ANALYTICS_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS;
+  const timeoutMs = override
+    || Number(process.env.ANALYTICS_TIMEOUT_MS)
+    || DEFAULT_TIMEOUT_MS;
 
   let response;
   try {
@@ -58,4 +60,16 @@ function fetchEnvironmentalData(payload) {
   return postJson("/api/environmental/fetch", payload);
 }
 
-module.exports = { fetchEnvironmentalData, AnalyticsServiceError };
+// payload: { assessment_id, context, modules, values }
+// (see analytics-service/app/schemas.py CalculationRequest).
+//
+// The engine is arithmetic over data this backend already holds, so it
+// answers in milliseconds. It gets its own short timeout rather than the
+// several minutes an environmental fetch needs: if a calculation has not
+// returned in ten seconds something is wrong, and waiting 270 s to find out
+// would hold a request open for no reason.
+function runCalculations(payload) {
+  return postJson("/api/calculations/run", payload, { timeoutMs: 10000 });
+}
+
+module.exports = { fetchEnvironmentalData, runCalculations, AnalyticsServiceError };
