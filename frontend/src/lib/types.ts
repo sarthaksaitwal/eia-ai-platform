@@ -339,3 +339,217 @@ export interface Rule {
   description: string | null;
   active: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Modules, parameters and calculation results
+// ---------------------------------------------------------------------------
+//
+// These mirror the module-driven calculation schema (migration 007). Nothing
+// here names a module: the five that exist today arrive as data from
+// /api/modules, and a sixth would appear in the UI without a change to this
+// file.
+
+export type ValueType = "numeric" | "text" | "enum";
+
+/** One question the platform puts to the user. */
+export interface ModuleParameter {
+  module_code: string;
+  module_name: string;
+  code: string;
+  label: string;
+  unit: string | null;
+  value_type: ValueType;
+  enum_values: string[] | null;
+  help_text: string | null;
+  required: boolean;
+  display_order: number;
+}
+
+/** One figure a module produces. `formula_text` is shown to the user and is
+ *  documentation, not something the frontend evaluates. */
+export interface ModuleOutput {
+  module_code: string;
+  code: string;
+  label: string;
+  unit: string | null;
+  formula_text: string;
+  operation: "product" | "sum" | "ratio" | "difference" | "clamped" | "lookup" | "geometry";
+  comparable: boolean;
+  limitation_note: string | null;
+  display_order: number;
+}
+
+export interface Module {
+  code: string;
+  name: string;
+  description: string | null;
+  purpose: string | null;
+  display_order: number;
+  enabled: boolean;
+  parameters: ModuleParameter[];
+  outputs: ModuleOutput[];
+}
+
+/** Where a figure came from. A calculation is the same arithmetic whichever
+ *  this is, and a report must not let a lab result and an estimate look alike. */
+export type SourceStatus =
+  | "OFFICIAL_LIVE"
+  | "OFFICIAL_REFERENCE"
+  | "USER_REPORTED"
+  | "USER_DOCUMENTED"
+  | "LAB_MEASURED"
+  | "GIS_DERIVED"
+  | "ESTIMATED"
+  | "STALE"
+  | "UNAVAILABLE"
+  | "UNVERIFIED";
+
+/** A stored answer. node-pg returns NUMERIC as a string, so value_numeric is
+ *  a string here and must go through formatValue rather than Number(). */
+export interface ParameterValue {
+  id: string;
+  parameter_code: string;
+  value_numeric: string | null;
+  value_text: string | null;
+  unit: string | null;
+  reporting_period: string | null;
+  source_status: SourceStatus;
+  source_reference: string | null;
+  observed_on: string | null;
+  method: string | null;
+  assumption: string | null;
+  updated_at: string;
+  label: string;
+  module_code: string;
+  expected_unit: string | null;
+}
+
+export interface NewParameterValue {
+  parameterCode: string;
+  valueNumeric?: number | null;
+  valueText?: string | null;
+  unit?: string | null;
+  reportingPeriod?: string | null;
+  sourceStatus?: SourceStatus;
+  sourceReference?: string | null;
+  assumption?: string | null;
+}
+
+/** Why a result does or does not carry a number. The four NOT_* values are
+ *  the reason an absent figure is never shown as zero. */
+export type CalculationStatus =
+  | "CALCULATED"
+  | "NOT_CALCULATED_MISSING_INPUT"
+  | "NOT_CALCULATED_UNIT_MISMATCH"
+  | "NOT_CALCULATED_NO_FACTOR"
+  | "NOT_APPLICABLE"
+  | "VERIFICATION_REQUIRED";
+
+export type ComparisonVerdict = "within_limit" | "outside_limit" | "not_compared";
+
+export interface ResultInput {
+  code: string;
+  label: string | null;
+  value: number | null;
+  text: string | null;
+  unit: string | null;
+  source_status: string;
+  reporting_period: string | null;
+}
+
+export interface ResultConstant {
+  code: string;
+  label: string;
+  value: number;
+  unit: string;
+  source: string;
+  version: string | null;
+  verified: boolean;
+}
+
+/** The provenance column. It holds the cited constants and limits, the
+ *  outputs a derived figure was built from, and the sentence explaining a
+ *  calculation that did not happen. */
+export interface ResultProvenance {
+  constants: ResultConstant[];
+  limits: ResultConstant[];
+  derived_from: string[];
+  detail: string | null;
+}
+
+export interface ModuleResult {
+  module_code: string;
+  module_name: string;
+  output_code: string;
+  label: string | null;
+  operation: string | null;
+  value_numeric: string | null;
+  value_text: string | null;
+  unit: string | null;
+  status: CalculationStatus;
+  missing_inputs: string[] | null;
+  comparison: ComparisonVerdict;
+  limit_code: string | null;
+  limit_value: string | null;
+  limit_unit: string | null;
+  inputs_used: ResultInput[] | null;
+  constants_used: ResultProvenance | null;
+  formula_text: string | null;
+  limitation_note: string | null;
+  provisional: boolean;
+  calculated_at: string;
+}
+
+export interface CalculationRun {
+  id: string;
+  engine_version: string;
+  status: "running" | "completed" | "failed";
+  summary: Record<string, number | unknown> | null;
+  started_at: string;
+  completed_at: string | null;
+  duration_ms: number | null;
+  error_message: string | null;
+}
+
+export interface CalculationResults {
+  run: CalculationRun | null;
+  results: ModuleResult[];
+  calculated: boolean;
+}
+
+/** A seeded constant or limit with its citation, for the reference view. */
+export interface ModuleConstant {
+  module_code: string;
+  code: string;
+  label: string;
+  value: string;
+  unit: string;
+  applies_to: string;
+  expects_unit: string;
+  result_unit: string;
+  source: string;
+  citation: string;
+  source_url: string | null;
+  version: string | null;
+  verified: boolean;
+  notes: string | null;
+}
+
+export interface ModuleLimit {
+  module_code: string;
+  code: string;
+  label: string;
+  subject: string;
+  selector: Record<string, string>;
+  comparison: "max" | "min" | "range";
+  value: string;
+  value_max: string | null;
+  unit: string;
+  is_index: boolean;
+  source: string;
+  citation: string;
+  source_url: string | null;
+  version: string | null;
+  verified: boolean;
+  notes: string | null;
+}

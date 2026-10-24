@@ -534,8 +534,22 @@ export default function Location() {
           Back to projects
         </Link>
 
-        {/* Assessment inputs and the calculation engine are the next phases. */}
-        <span className="text-sm text-ink-subtle">Assessment inputs come next</span>
+        {/* Where the baseline hands over to the modules: figures are entered
+            against the module parameters, then calculated. */}
+        <div className="flex items-center gap-4">
+          <Link
+            to={`/projects/${projectId}/inputs`}
+            className="text-sm font-semibold text-brand transition-colors duration-200 hover:text-brand-hover"
+          >
+            Enter project inputs
+          </Link>
+          <Link
+            to={`/projects/${projectId}/results`}
+            className="text-sm font-semibold text-ink-muted transition-colors duration-200 hover:text-ink"
+          >
+            Results
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -3,10 +3,19 @@ import type {
   AssessmentDetail,
   AssessmentInput,
   AuthResponse,
+  CalculationResults,
+  CalculationRun,
   Coefficient,
   EnvironmentalFetchResult,
+  Module,
+  ModuleConstant,
+  ModuleLimit,
+  ModuleOutput,
+  ModuleResult,
   NewAssessmentInput,
+  NewParameterValue,
   NewProjectRequest,
+  ParameterValue,
   Project,
   Role,
   Rule,
@@ -254,5 +263,59 @@ export const api = {
   listRules(factor?: string) {
     const suffix = factor ? `?factor=${encodeURIComponent(factor)}` : "";
     return request<{ rules: Rule[] }>(`/api/reference/rules${suffix}`);
+  },
+
+  // ---- module registry --------------------------------------------------
+  // The questions and the outputs, read from the module tables. The input
+  // form is built from this, so a module added by seeding needs no change
+  // here to appear.
+  listModules() {
+    return request<{ modules: Module[]; unavailable_outputs: ModuleOutput[] }>(
+      "/api/modules"
+    );
+  },
+
+  listModuleReference() {
+    return request<{
+      constants: ModuleConstant[];
+      limits: ModuleLimit[];
+      unverified_constants: number;
+      unverified_limits: number;
+    }>("/api/modules/reference");
+  },
+
+  // ---- assessment values and calculation --------------------------------
+  listValues(assessmentId: string) {
+    return request<{ values: ParameterValue[] }>(
+      `/api/assessments/${assessmentId}/values`
+    );
+  },
+
+  saveValues(assessmentId: string, values: NewParameterValue[]) {
+    return request<{ values: ParameterValue[] }>(
+      `/api/assessments/${assessmentId}/values`,
+      // `request` stringifies the body itself, so this passes the object.
+      { method: "POST", body: { values } }
+    );
+  },
+
+  // Arithmetic over data the backend already holds, so this answers in
+  // milliseconds -- unlike the environmental fetch, which needs minutes.
+  runCalculation(assessmentId: string) {
+    return request<{
+      run: CalculationRun;
+      results: ModuleResult[];
+      skippedModules: { module_code: string; reason: string }[];
+    }>(`/api/assessments/${assessmentId}/calculate`, { method: "POST" });
+  },
+
+  getResults(assessmentId: string) {
+    return request<CalculationResults>(`/api/assessments/${assessmentId}/results`);
+  },
+
+  listRuns(assessmentId: string) {
+    return request<{ runs: CalculationRun[] }>(
+      `/api/assessments/${assessmentId}/runs`
+    );
   },
 };
