@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Leaf } from "lucide-react";
 
 import { InlineError } from "../components/ui/States";
 import { Button, Field } from "../components/ui/Primitives";
 import { inputClass, selectClass } from "../components/ui/fieldStyles";
+import { PasswordInput } from "../components/ui/PasswordInput";
 import { useAuth } from "../lib/auth";
 import { ROLES, type Role } from "../lib/types";
 
@@ -13,7 +14,11 @@ export default function SignIn() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  // Which of the two forms shows is the URL's business, not local state, so
+  // the landing page can link straight at "create an account" and the address
+  // bar stays honest about what is on screen.
+  const signingIn = location.pathname !== "/signup";
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +36,7 @@ export default function SignIn() {
     setBusy(true);
 
     try {
-      if (mode === "signin") {
+      if (signingIn) {
         await signIn(email.trim(), password);
       } else {
         await signUp({
@@ -49,8 +54,6 @@ export default function SignIn() {
       setBusy(false);
     }
   }
-
-  const signingIn = mode === "signin";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
@@ -119,15 +122,13 @@ export default function SignIn() {
               // avoids a round trip to find out.
               hint={signingIn ? undefined : "At least 8 characters."}
             >
-              <input
+              <PasswordInput
                 id="password"
-                type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={setPassword}
                 required
                 minLength={signingIn ? undefined : 8}
                 autoComplete={signingIn ? "current-password" : "new-password"}
-                className={inputClass}
               />
             </Field>
 
@@ -167,16 +168,17 @@ export default function SignIn() {
 
           <div className="border-t border-line bg-surface-sunken px-6 py-4 text-center text-sm text-ink-muted">
             {signingIn ? "No account yet? " : "Already have an account? "}
-            <button
-              type="button"
-              onClick={() => {
-                setMode(signingIn ? "signup" : "signin");
-                setError(null);
-              }}
+            <Link
+              to={signingIn ? "/signup" : "/signin"}
+              // Carry the redirect target across, or someone sent here from a
+              // deep link loses it by switching forms. Clearing the error on
+              // the way keeps a failed sign-in from following them over.
+              state={location.state}
+              onClick={() => setError(null)}
               className="font-semibold text-brand transition-colors duration-200 hover:text-brand-hover"
             >
               {signingIn ? "Create one" : "Sign in"}
-            </button>
+            </Link>
           </div>
         </div>
       </div>

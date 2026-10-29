@@ -22,8 +22,7 @@ import {
 import { inputClass, selectClass } from "../components/ui/fieldStyles";
 import { api } from "../lib/api";
 import { useApi } from "../lib/useApi";
-import { formatCoords, formatCount, formatDate } from "../lib/format";
-import type { Project } from "../lib/types";
+import { formatCount, formatDate, formatPlace } from "../lib/format";
 
 // projects.status is free text in the schema, so this maps only the values the
 // backend actually sets and leaves anything else neutral. Each status carries
@@ -37,17 +36,6 @@ const STATUS: Record<
   "In Progress": { tone: "brand", icon: Timer },
   Draft: { tone: "neutral", icon: CircleDashed },
 };
-
-// findProjectsByUser flattens the location columns onto the row rather than
-// nesting them, so the place a project sits has to be assembled here.
-function placeOf(project: Project) {
-  const parts = [project.city, project.district, project.state].filter(
-    (part): part is string => Boolean(part && part.trim())
-  );
-  if (parts.length) return parts.join(", ");
-
-  return formatCoords(project.latitude, project.longitude) ?? "No location set";
-}
 
 const COLUMNS = "lg:grid-cols-[2.2fr_1fr_1.3fr_1.5fr_0.9fr_1fr]";
 
@@ -88,7 +76,7 @@ export default function Projects() {
       return (
         project.name.toLowerCase().includes(term) ||
         project.industry.toLowerCase().includes(term) ||
-        placeOf(project).toLowerCase().includes(term)
+        formatPlace(project).toLowerCase().includes(term)
       );
     });
   }, [projects, search, status]);
@@ -213,7 +201,7 @@ export default function Projects() {
                             className="hidden shrink-0 text-ink-subtle lg:block"
                             aria-hidden="true"
                           />
-                          <span className="truncate">{placeOf(project)}</span>
+                          <span className="truncate">{formatPlace(project)}</span>
                         </span>
                       </div>
 

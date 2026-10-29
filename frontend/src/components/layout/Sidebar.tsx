@@ -1,8 +1,5 @@
 import { NavLink } from "react-router-dom";
 import {
-  ClipboardCheck,
-  Database,
-  FileText,
   FolderKanban,
   LayoutDashboard,
   Leaf,
@@ -15,17 +12,17 @@ import type { ComponentType } from "react";
 type Item = {
   label: string;
   icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
-  /** Present only when the screen exists. */
-  path?: string;
-  /** Why it is not reachable yet, shown on hover and to assistive tech. */
-  pending?: string;
+  path: string;
 };
 
-// This list mirrors the routes in App.tsx. An item without a path is not a
-// link: the previous sidebar pointed at /assessments, /reports, /help and
-// /settings, none of which are routes, and the catch-all quietly bounced every
-// click back to the dashboard. A control that silently does the wrong thing is
-// worse than one that says it is not ready.
+// This list mirrors the routes in App.tsx, and every entry is a real one. The
+// previous sidebar pointed at /assessments, /reports, /help and /settings,
+// none of which were routes, and the catch-all quietly bounced every click
+// back to the dashboard. A control that silently does the wrong thing is
+// worse than one that is not offered.
+//
+// Inputs and results are reached from a project rather than from here: both
+// belong to one, so the project page carries those buttons.
 const NAVIGATION: { section: string; items: Item[] }[] = [
   {
     section: "Overview",
@@ -36,29 +33,6 @@ const NAVIGATION: { section: string; items: Item[] }[] = [
     items: [
       { label: "All projects", icon: FolderKanban, path: "/projects" },
       { label: "New project", icon: Plus, path: "/projects/new" },
-    ],
-  },
-  {
-    section: "Assessment",
-    items: [
-      // Both screens exist but are scoped to one project, so there is no
-      // meaningful destination from the sidebar. They are listed with where
-      // to find them rather than left out.
-      {
-        label: "Project inputs",
-        icon: ClipboardCheck,
-        pending: "Opens from a project, under Enter project inputs",
-      },
-      {
-        label: "Calculated results",
-        icon: Database,
-        pending: "Opens from a project, once inputs have been calculated",
-      },
-      {
-        label: "Reports",
-        icon: FileText,
-        pending: "Available once results can be calculated",
-      },
     ],
   },
 ];
@@ -126,31 +100,16 @@ export default function Sidebar({
             <ul className="space-y-0.5">
               {group.items.map((item) => (
                 <li key={item.label}>
-                  {item.path ? (
-                    <NavLink
-                      to={item.path}
-                      // Navigating is the end of the reason the drawer was
-                      // open; leaving it up means two taps to see the page.
-                      onClick={onClose}
-                      className={({ isActive }) => itemClass(isActive)}
-                    >
-                      <item.icon size={17} strokeWidth={1.8} aria-hidden="true" />
-                      <span className="truncate">{item.label}</span>
-                    </NavLink>
-                  ) : (
-                    <span
-                      title={item.pending}
-                      aria-disabled="true"
-                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-ink-subtle"
-                    >
-                      <item.icon size={17} strokeWidth={1.8} aria-hidden="true" />
-                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
-
-                      <span className="shrink-0 rounded-sm bg-neutral-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-ink">
-                        Soon
-                      </span>
-                    </span>
-                  )}
+                  <NavLink
+                    to={item.path}
+                    // Navigating is the end of the reason the drawer was
+                    // open; leaving it up means two taps to see the page.
+                    onClick={onClose}
+                    className={({ isActive }) => itemClass(isActive)}
+                  >
+                    <item.icon size={17} strokeWidth={1.8} aria-hidden="true" />
+                    <span className="truncate">{item.label}</span>
+                  </NavLink>
                 </li>
               ))}
             </ul>
@@ -159,17 +118,14 @@ export default function Sidebar({
       </nav>
 
       <div className="border-t border-line p-3">
-        <span
-          title="No settings are stored yet"
-          aria-disabled="true"
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-ink-subtle"
+        <NavLink
+          to="/settings"
+          onClick={onClose}
+          className={({ isActive }) => itemClass(isActive)}
         >
           <Settings size={17} strokeWidth={1.8} aria-hidden="true" />
-          <span className="min-w-0 flex-1 truncate">Settings</span>
-          <span className="shrink-0 rounded-sm bg-neutral-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-ink">
-            Soon
-          </span>
-        </span>
+          <span className="truncate">Settings</span>
+        </NavLink>
 
         {/* The signed-in person lives in the header menu. The old sidebar
             repeated it here with a hardcoded name and role, which was wrong
