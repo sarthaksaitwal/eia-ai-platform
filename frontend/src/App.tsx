@@ -9,7 +9,10 @@ import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import CreateProject from "./pages/CreateProject";
 import Inputs from "./pages/Inputs";
+import Landing from "./pages/Landing";
 import Location from "./pages/Location";
+import PickProject from "./pages/PickProject";
+import Settings from "./pages/Settings";
 import Results from "./pages/Results";
 import SignIn from "./pages/SignIn";
 
@@ -40,8 +43,27 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* The only page a signed-out visitor can see. Someone already signed
+          in has no use for the pitch, so they go straight to their work. */}
+      <Route
+        path="/"
+        element={
+          loading ? null : user ? <Navigate to="/dashboard" replace /> : <Landing />
+        }
+      />
+
+      {/* Both render SignIn, which reads the path to decide which form to
+          show. Two URLs rather than one so a "create an account" link can
+          land on the right form. */}
       <Route
         path="/signin"
+        element={
+          loading ? null : user ? <Navigate to="/dashboard" replace /> : <SignIn />
+        }
+      />
+
+      <Route
+        path="/signup"
         element={
           loading ? null : user ? <Navigate to="/dashboard" replace /> : <SignIn />
         }
@@ -54,14 +76,20 @@ function AppRoutes() {
           </RequireAuth>
         }
       >
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
 
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/new" element={<CreateProject />} />
+        {/* The sidebar's two assessment entries. Both screens below need a
+            project id, so these ask for one first. */}
+        <Route path="/inputs" element={<PickProject destination="inputs" />} />
+        <Route path="/results" element={<PickProject destination="results" />} />
+
         <Route path="/projects/:id/location" element={<Location />} />
         <Route path="/projects/:id/inputs" element={<Inputs />} />
         <Route path="/projects/:id/results" element={<Results />} />
+
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
       {/* The sidebar links to pages that do not exist yet; without this a

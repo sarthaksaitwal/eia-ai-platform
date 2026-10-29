@@ -35,4 +35,47 @@ async function findUserById(id) {
   return rows[0] || null;
 }
 
-module.exports = { createUser, findUserByEmail, findUserById, ALLOWED_ROLES };
+// The caller resolves every field before calling: a PATCH that leaves one
+// out keeps what is stored, and working that out needs the current row, which
+// the controller has already read.
+async function updateUser(id, { name, organization, role }) {
+  const { rows } = await query(
+    `UPDATE users
+        SET name = $2,
+            organization = $3,
+            role = $4,
+            updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING id, name, email, role, organization, is_active, created_at`,
+    [id, name, organization, role]
+  );
+  return rows[0] || null;
+}
+
+// findUserById deliberately leaves the hash out, so anything that needs it
+// has to ask for it by name rather than receive it by accident.
+async function findPasswordHashById(id) {
+  const { rows } = await query(`SELECT password_hash FROM users WHERE id = $1`, [id]);
+  return rows[0] ? rows[0].password_hash : null;
+}
+
+async function updatePassword(id, passwordHash) {
+  const { rowCount } = await query(
+    `UPDATE users
+        SET password_hash = $2,
+            updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1`,
+    [id, passwordHash]
+  );
+  return rowCount > 0;
+}
+
+module.exports = {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  findPasswordHashById,
+  updateUser,
+  updatePassword,
+  ALLOWED_ROLES,
+};

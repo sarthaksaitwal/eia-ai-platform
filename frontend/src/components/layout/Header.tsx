@@ -91,7 +91,10 @@ export default function Header({ onOpenNav }: { onOpenNav: () => void }) {
               onClick={() => {
                 setOpen(false);
                 signOut();
-                navigate("/signin", { replace: true });
+                // Out to the public page, not the sign-in form: someone who
+                // has just left is not usually trying to get straight back
+                // in. `replace` keeps Back from returning to the shell.
+                navigate("/", { replace: true });
               }}
               className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink-muted transition-colors duration-200 hover:bg-surface-hover hover:text-ink"
             >

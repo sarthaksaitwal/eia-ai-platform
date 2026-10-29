@@ -25,6 +25,9 @@ interface AuthState {
     organization?: string;
   }) => Promise<void>;
   signOut: () => void;
+  // Settings edits the signed-in person, so the header avatar and the
+  // greeting have to follow the save without a second trip to /me.
+  applyUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -94,9 +97,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const applyUser = useCallback((updated: User) => setUser(updated), []);
+
   const value = useMemo(
-    () => ({ user, loading, signIn, signUp, signOut }),
-    [user, loading, signIn, signUp, signOut]
+    () => ({ user, loading, signIn, signUp, signOut, applyUser }),
+    [user, loading, signIn, signUp, signOut, applyUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

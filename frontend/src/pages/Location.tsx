@@ -16,6 +16,7 @@ import {
 import "leaflet/dist/leaflet.css";
 
 import { Empty, ErrorState, InlineError, Loading } from "../components/ui/States";
+import { ButtonLink } from "../components/ui/Primitives";
 import { api } from "../lib/api";
 import { useApi } from "../lib/useApi";
 import type { Observation, ProviderOutcome } from "../lib/types";
@@ -77,6 +78,26 @@ export default function Location() {
         : Promise.resolve({ environmental_data: [], gis_results: [], fetch_logs: [] }),
     [assessment?.id]
   );
+
+  // What the two header buttons say. Saved values decide between entering
+  // and editing; `calculated` decides whether results are worth offering at
+  // all. Both resolve to an empty answer without an assessment, so the
+  // buttons never claim work that does not exist.
+  const values = useApi(
+    () => (assessment ? api.listValues(assessment.id) : Promise.resolve({ values: [] })),
+    [assessment?.id]
+  );
+
+  const results = useApi(
+    () =>
+      assessment
+        ? api.getResults(assessment.id)
+        : Promise.resolve({ run: null, results: [], calculated: false }),
+    [assessment?.id]
+  );
+
+  const hasInputs = (values.data?.values.length ?? 0) > 0;
+  const hasResults = results.data?.calculated === true;
 
   const [radiusKm, setRadiusKm] = useState("10");
   const [fetching, setFetching] = useState(false);
@@ -151,18 +172,41 @@ export default function Location() {
 
   return (
     <div className="max-w-6xl">
-      <div className="mb-6">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand">
-          Assessment setup
-        </p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand">
+            Assessment setup
+          </p>
 
-        <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
-          Location and GIS
-        </h1>
+          <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
+            Location and GIS
+          </h1>
 
-        <p className="mt-1 text-sm text-ink-muted">
-          {row.name} — review the site and collect the environmental baseline for it.
-        </p>
+          <p className="mt-1 text-sm text-ink-muted">
+            {row.name} — review the site and collect the environmental baseline for it.
+          </p>
+        </div>
+
+        {/* Where the baseline hands over to the modules. These sat at the foot
+            of the page, under a provider table that runs to dozens of rows
+            once a baseline has been fetched, so nobody scrolled to them. */}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <ButtonLink to={`/projects/${projectId}/inputs`} icon={ClipboardCheck}>
+            {hasInputs ? "Edit project inputs" : "Enter project inputs"}
+          </ButtonLink>
+
+          {/* Nothing has been calculated yet means nothing to show, and a
+              button onto an empty page is a promise the page cannot keep. */}
+          {hasResults && (
+            <ButtonLink
+              to={`/projects/${projectId}/results`}
+              tone="secondary"
+              icon={Database}
+            >
+              Results
+            </ButtonLink>
+          )}
+        </div>
       </div>
 
       {/* Site */}
@@ -525,31 +569,14 @@ export default function Location() {
         </div>
       </section>
 
-      <div className="flex items-center justify-between">
+      <div>
         <Link
           to="/projects"
-          className="flex items-center gap-2 text-sm font-semibold text-ink-muted hover:text-ink"
+          className="flex w-fit items-center gap-2 text-sm font-semibold text-ink-muted hover:text-ink"
         >
           <ArrowLeft size={16} />
           Back to projects
         </Link>
-
-        {/* Where the baseline hands over to the modules: figures are entered
-            against the module parameters, then calculated. */}
-        <div className="flex items-center gap-4">
-          <Link
-            to={`/projects/${projectId}/inputs`}
-            className="text-sm font-semibold text-brand transition-colors duration-200 hover:text-brand-hover"
-          >
-            Enter project inputs
-          </Link>
-          <Link
-            to={`/projects/${projectId}/results`}
-            className="text-sm font-semibold text-ink-muted transition-colors duration-200 hover:text-ink"
-          >
-            Results
-          </Link>
-        </div>
       </div>
     </div>
   );

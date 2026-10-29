@@ -114,7 +114,15 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     clearTimeout(timer);
   }
 
-  if (response.status === 401) {
+  // A 401 from the sign-in or registration routes means the credentials were
+  // refused, not that a session lapsed. Treating the two alike told someone
+  // mistyping a password that their session had expired -- which is both
+  // wrong and unactionable -- and threw away a working token on the way.
+  // Everything else answering 401 really is an expired or rejected token.
+  const credentialCheck =
+    path === "/api/auth/login" || path === "/api/auth/register";
+
+  if (response.status === 401 && !credentialCheck) {
     setToken(null);
     window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
     throw new ApiError(401, "Your session has expired. Please sign in again.");
@@ -167,6 +175,20 @@ export const api = {
 
   me() {
     return request<{ user: User }>("/api/auth/me");
+  },
+
+  // A field left out keeps its stored value; organization sent as "" clears
+  // it. Email is not here: it is the sign-in identity, and the backend does
+  // not accept a change to it.
+  updateProfile(input: { name?: string; organization?: string; role?: Role }) {
+    return request<{ user: User }>("/api/auth/me", { method: "PATCH", body: input });
+  },
+
+  changePassword(input: { currentPassword: string; newPassword: string }) {
+    return request<{ ok: true }>("/api/auth/me/password", {
+      method: "PUT",
+      body: input,
+    });
   },
 
   // ---- projects ---------------------------------------------------------

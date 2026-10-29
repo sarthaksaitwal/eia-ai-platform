@@ -76,6 +76,29 @@ export function formatCoords(
   return `${lat}, ${lon}`;
 }
 
+/**
+ * Where a project sits, in words. findProjectsByUser flattens the location
+ * columns onto the row rather than nesting them, so the place has to be
+ * assembled; coordinates stand in when no place name was recorded.
+ *
+ * Typed structurally rather than against Project, so this file keeps to
+ * formatting and does not start depending on the API's shapes.
+ */
+export function formatPlace(project: {
+  city?: string | null;
+  district?: string | null;
+  state?: string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+}) {
+  const parts = [project.city, project.district, project.state].filter(
+    (part): part is string => Boolean(part && part.trim())
+  );
+  if (parts.length) return parts.join(", ");
+
+  return formatCoords(project.latitude, project.longitude) ?? "No location set";
+}
+
 /** Initials for an avatar, from a name of any shape. */
 export function initialsOf(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
