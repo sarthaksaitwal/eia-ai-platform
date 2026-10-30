@@ -30,8 +30,21 @@ const getProject = asyncHandler(async (req, res) => {
 });
 
 const updateProject = asyncHandler(async (req, res) => {
-  const updated = await projectModel.updateProject(req.params.id, req.user.id, req.body);
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) throw new ApiError(400, errors.array()[0].msg);
+
+  const { project, location } = req.body;
+
+  const updated = await projectModel.updateProjectWithLocation(req.params.id, req.user.id, {
+    project,
+    location,
+  });
+
+  // Null means no row matched the id and the owner, which is the same answer
+  // whether the project never existed or belongs to someone else. Saying
+  // which would confirm the existence of another user's project.
   if (!updated) throw new ApiError(404, "Project not found.");
+
   res.json({ project: updated });
 });
 
