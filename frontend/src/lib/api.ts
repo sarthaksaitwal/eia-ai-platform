@@ -204,10 +204,10 @@ export const api = {
     return request<{ project: Project }>("/api/projects", { method: "POST", body: input });
   },
 
-  // updateProject takes the column names, not the camelCase the create route
-  // uses; see updateProject's allow-list in backend projectModel.js.
-  updateProject(id: string, fields: Record<string, unknown>) {
-    return request<{ project: Project }>(`/api/projects/${id}`, { method: "PUT", body: fields });
+  // Same body as createProject: the backend runs both through one validator
+  // chain and one transaction, and updates the location alongside the project.
+  updateProject(id: string, input: NewProjectRequest) {
+    return request<{ project: Project }>(`/api/projects/${id}`, { method: "PUT", body: input });
   },
 
   deleteProject(id: string) {

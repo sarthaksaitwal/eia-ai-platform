@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "./lib/auth";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import CreateProject from "./pages/CreateProject";
+import EditProject from "./pages/EditProject";
 import Inputs from "./pages/Inputs";
 import Landing from "./pages/Landing";
 import Location from "./pages/Location";
@@ -85,6 +86,7 @@ function AppRoutes() {
         <Route path="/inputs" element={<PickProject destination="inputs" />} />
         <Route path="/results" element={<PickProject destination="results" />} />
 
+        <Route path="/projects/:id/edit" element={<EditProject />} />
         <Route path="/projects/:id/location" element={<Location />} />
         <Route path="/projects/:id/inputs" element={<Inputs />} />
         <Route path="/projects/:id/results" element={<Results />} />

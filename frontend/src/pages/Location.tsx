@@ -9,6 +9,7 @@ import {
   Database,
   Loader2,
   MapPin,
+  Pencil,
   Radar,
   RefreshCw,
   XCircle,
@@ -195,6 +196,17 @@ export default function Location() {
             {hasInputs ? "Edit project inputs" : "Enter project inputs"}
           </ButtonLink>
 
+          {/* The project's own details, as distinct from the assessment
+              figures the button above collects. Secondary, because entering
+              inputs is what this page leads to. */}
+          <ButtonLink
+            to={`/projects/${projectId}/edit`}
+            tone="secondary"
+            icon={Pencil}
+          >
+            Edit project
+          </ButtonLink>
+
           {/* Nothing has been calculated yet means nothing to show, and a
               button onto an empty page is a promise the page cannot keep. */}
           {hasResults && (
@@ -220,17 +232,22 @@ export default function Location() {
             <div>
               <h2 className="text-sm font-semibold text-ink">Project site</h2>
               <p className="mt-0.5 text-xs text-ink-muted">
-                Saved when the project was created.
+                Change it from Edit project. Moving it does not re-collect the baseline.
               </p>
             </div>
           </div>
         </div>
 
         {!hasPoint ? (
-          <div className="p-6">
-            <InlineError
-              message="This project has no coordinates, so no baseline can be fetched. The backend sets a location only when the project is created, so this project needs to be created again with its site."
-            />
+          // No longer a dead end: PUT /api/projects/:id upserts the location,
+          // so a project created before the site was mandatory can be given
+          // one instead of being created again.
+          <div className="space-y-4 p-6">
+            <InlineError message="This project has no coordinates, so no baseline can be fetched. Every provider is queried by a point." />
+
+            <ButtonLink to={`/projects/${projectId}/edit`} icon={MapPin}>
+              Set the site location
+            </ButtonLink>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2 xl:grid-cols-3">

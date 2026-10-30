@@ -80,7 +80,9 @@ export interface Project {
   land_area_unit: string | null;
   estimated_investment: string | null;
   employees: number | null;
-  operating_hours_per_day: number | null;
+  // INTEGER above, NUMERIC(5,2) here, so this one arrives as a string while
+  // employees arrives as a number.
+  operating_hours_per_day: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -95,6 +97,11 @@ export interface Project {
   longitude?: number | null;
 }
 
+// Sent by both POST /api/projects and PUT /api/projects/:id -- the two routes
+// share one validator chain on the backend, so one shape serves the create
+// and edit forms alike. An optional field set to null clears the stored
+// value; omitting it on an update leaves name and industry alone and clears
+// everything else, so the form always sends the whole object.
 export interface NewProjectRequest {
   project: {
     name: string;
